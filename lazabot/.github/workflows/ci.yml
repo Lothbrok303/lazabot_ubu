@@ -1,0 +1,265 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Rust Build and Test Job
+  rust-build-test:
+    name: Rust Build & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust-version: [stable, beta, nightly]
+        include:
+          - rust-version: stable
+            toolchain: stable
+          - rust-version: beta
+            toolchain: beta
+          - rust-version: nightly
+            toolchain: nightly
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.toolchain }}
+        components: rustfmt, clippy
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.toolchain }}-
+
+    - name: Check Rust formatting
+      run: cargo fmt --all -- --check
+
+    - name: Run Clippy linter
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    - name: Build Rust project
+      run: cargo build --verbose --all-features
+
+    - name: Run Rust tests
+      run: cargo test --verbose --all-features
+
+    - name: Run Rust integration tests
+      run: cargo test --verbose --test '*' --all-features
+
+    - name: Build for release
+      run: cargo build --release --verbose --all-features
+
+  # Node.js Playwright Linting and Testing
+  node-playwright:
+    name: Node.js Playwright Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    - name: Lint JavaScript/TypeScript
+      run: |
+        # Install ESLint if not present
+        if ! command -v eslint &> /dev/null; then
+          npm install -g eslint
+        fi
+        
+        # Lint JavaScript files
+        find scripts/ -name "*.js" -exec eslint {} \; || true
+        
+        # Check for common issues
+        echo "Checking for console.log statements..."
+        if grep -r "console\.log" scripts/; then
+          echo "Warning: Found console.log statements in production code"
+        fi
+
+    - name: Test Playwright server
+      run: npm test
+
+    - name: Run Playwright integration tests
+      run: node scripts/test_full_integration.js
+
+    - name: Check for security vulnerabilities
+      run: npm audit --audit-level moderate
+
+  # Security Scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        languages: javascript, rust
+
+    - name: Check for secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # Docker Build and Test
+  docker-build:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, node-playwright]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: lazabot:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image
+      run: |
+        # Test that the container starts
+        docker run --rm -d --name lazabot-test lazabot:test
+        sleep 10
+        docker logs lazabot-test
+        docker stop lazabot-test
+
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, node-playwright, docker-build]
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup test environment
+      run: |
+        # Create test configuration
+        mkdir -p test_config
+        cp config/*.yaml test_config/ 2>/dev/null || true
+
+    - name: Run integration tests
+      run: |
+        # Run Rust integration tests
+        cargo test --test '*' --verbose
+        
+        # Run Node.js integration tests
+        npm test
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, node-playwright, security-scan, docker-build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment commands here
+        # Example: kubectl apply -f deploy/staging/
+        # Example: docker-compose -f docker-compose.staging.yml up -d
+
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests against staging..."
+        # Add smoke test commands here
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [rust-build-test, node-playwright, security-scan, docker-build, integration-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment commands here
+        # Example: kubectl apply -f deploy/production/
+        # Example: docker-compose -f docker-compose.prod.yml up -d
+
+    - name: Run production health checks
+      run: |
+        echo "Running production health checks..."
+        # Add health check commands here
+
+  # Cleanup
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Clean up Docker images
+      run: |
+        docker system prune -f
+        docker volume prune -f

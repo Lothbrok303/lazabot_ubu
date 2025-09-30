@@ -1,0 +1,47 @@
+# Integration Test Configuration
+# This file contains configuration for running integration tests
+
+test_environment:
+  name: "integration_test"
+  timeout: 300  # 5 minutes
+  retries: 3
+  
+# Rust Test Configuration
+rust_tests:
+  features: ["all"]
+  verbose: true
+  release: false
+  test_timeout: 60
+  
+# Node.js Test Configuration
+node_tests:
+  timeout: 120000  # 2 minutes
+  retries: 2
+  headless: true
+  
+# Playwright Configuration
+playwright:
+  browser: "chromium"
+  headless: true
+  timeout: 30000
+  retry_count: 2
+  
+# Test Data
+test_data:
+  sample_configs:
+    - "config/test_config.yaml"
+    - "config/production_config.yaml"
+  
+# Security Test Configuration
+security_tests:
+  enabled: true
+  scan_dependencies: true
+  check_secrets: true
+  audit_level: "moderate"
+  
+# Performance Test Configuration
+performance_tests:
+  enabled: true
+  max_memory_mb: 512
+  max_cpu_percent: 80
+  response_time_ms: 1000

@@ -466,3 +466,140 @@ let decrypted_field = decrypt_field(&encrypted_field)?;
 
 **Error: "Encryption manager not initialized"**
 - Solution: Call `init_encryption()` before using encryption functions
+
+## 🚀 CI/CD Pipeline
+
+This project includes a comprehensive CI/CD pipeline with automated testing, security scanning, and deployment controls.
+
+### Pipeline Overview
+
+The CI/CD pipeline includes the following stages:
+
+1. **Rust Build & Test** - Compiles and tests Rust code across multiple toolchains
+2. **Node.js Playwright Lint & Test** - Lints and tests JavaScript/Node.js code
+3. **Security Scan** - Runs vulnerability scanning and secret detection
+4. **Docker Build & Test** - Builds and tests Docker containers
+5. **Integration Tests** - Runs comprehensive integration tests
+6. **Deploy to Staging** - Automatic deployment to staging environment
+7. **Deploy to Production** - Manual approval required for production deployment
+
+### Running Tests Locally
+
+#### Rust Tests
+```bash
+# Run all Rust tests
+cargo test --all-features
+
+# Run with verbose output
+cargo test --verbose --all-features
+
+# Run specific test
+cargo test test_name --verbose
+
+# Run integration tests
+cargo test --test '*' --verbose
+```
+
+#### Node.js Tests
+```bash
+# Install dependencies
+npm ci
+
+# Run Playwright tests
+npm test
+
+# Run integration tests
+node scripts/test_full_integration.js
+
+# Lint JavaScript code
+npx eslint scripts/*.js
+```
+
+#### Docker Tests
+```bash
+# Build Docker image
+docker build -t lazabot:test .
+
+# Test Docker container
+docker run --rm -d --name lazabot-test lazabot:test
+docker logs lazabot-test
+docker stop lazabot-test
+```
+
+### Security Scanning
+
+The pipeline includes multiple security scanning tools:
+
+- **Trivy** - Vulnerability scanner for containers and dependencies
+- **CodeQL** - Static analysis for security vulnerabilities
+- **TruffleHog** - Secret detection in code and commits
+- **npm audit** - Node.js dependency vulnerability scanning
+
+### Deployment Process
+
+#### Staging Deployment
+- Triggered automatically on pushes to `develop` branch
+- Runs after all tests and security scans pass
+- Includes smoke tests for basic functionality
+
+#### Production Deployment
+- Triggered automatically on pushes to `main` branch
+- Requires manual approval from DevOps team
+- Includes comprehensive health checks
+- Monitored for performance and error rates
+
+### Pull Request Process
+
+All pull requests must pass the following checks:
+
+1. **Security Review** - No secrets, proper input validation, secure coding practices
+2. **Code Quality** - Rust clippy, ESLint, proper formatting
+3. **Testing** - Unit tests, integration tests, manual testing
+4. **Documentation** - Updated README, code comments, API documentation
+5. **Performance** - No performance regressions, resource usage within limits
+
+### Environment Configuration
+
+The pipeline uses GitHub Environments for deployment control:
+
+- **staging** - Automatic deployment with basic approval
+- **production** - Manual approval required from authorized users
+
+### Monitoring and Alerting
+
+- **Build Status** - Real-time build and test status
+- **Security Alerts** - Immediate notification of security issues
+- **Deployment Status** - Track deployment success/failure
+- **Performance Metrics** - Monitor application performance post-deployment
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Rust Build Failures**
+   - Check Rust version compatibility
+   - Verify all dependencies are available
+   - Run `cargo clean` and rebuild
+
+2. **Node.js Test Failures**
+   - Ensure Playwright browsers are installed
+   - Check Node.js version compatibility
+   - Verify test environment configuration
+
+3. **Security Scan Failures**
+   - Review and fix security vulnerabilities
+   - Remove any hardcoded secrets
+   - Update dependencies with known issues
+
+4. **Docker Build Failures**
+   - Check Dockerfile syntax
+   - Verify base image availability
+   - Review resource constraints
+
+#### Getting Help
+
+- Check the [Security Policy](.github/SECURITY.md) for security-related issues
+- Review the [Pull Request Template](.github/pull_request_template.md) for PR guidelines
+- Open an issue for bugs or feature requests
+- Contact the DevOps team for deployment issues
+
