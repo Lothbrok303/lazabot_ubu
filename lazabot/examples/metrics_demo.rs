@@ -1,5 +1,5 @@
 //! Metrics server demo
-//! 
+//!
 //! This example demonstrates the metrics server functionality.
 //! Run with: cargo run --example metrics_demo
 //! Then curl http://127.0.0.1:9091/metrics to see the metrics
@@ -36,10 +36,10 @@ async fn main() -> anyhow::Result<()> {
         // Simulate a task
         collector.inc_active_tasks();
         collector.inc_total_requests();
-        
+
         // Simulate work
         sleep(Duration::from_millis(100)).await;
-        
+
         // Simulate success or failure
         if i % 10 == 0 {
             collector.inc_failed_requests();
@@ -48,9 +48,9 @@ async fn main() -> anyhow::Result<()> {
             collector.inc_success_requests();
             println!("Task {} succeeded", i);
         }
-        
+
         collector.dec_active_tasks();
-        
+
         // Small delay between tasks
         sleep(Duration::from_millis(50)).await;
     }

@@ -1,8 +1,9 @@
+use rand::RngCore;
 use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
 };
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use std::env;
 use thiserror::Error;
 
@@ -32,20 +33,19 @@ pub struct EncryptionManager {
 impl EncryptionManager {
     /// Create a new encryption manager using the master key from environment
     pub fn new() -> EncryptionResult<Self> {
-        let master_key = env::var("LAZABOT_MASTER_KEY")
-            .map_err(|_| EncryptionError::MissingMasterKey(
-                "LAZABOT_MASTER_KEY environment variable not set".to_string()
-            ))?;
+        let master_key = env::var("LAZABOT_MASTER_KEY").map_err(|_| {
+            EncryptionError::MissingMasterKey(
+                "LAZABOT_MASTER_KEY environment variable not set".to_string(),
+            )
+        })?;
 
         // Decode the hex-encoded master key
         let key_bytes = hex::decode(&master_key)
-            .map_err(|e| EncryptionError::InvalidKeyFormat(
-                format!("Invalid hex format: {}", e)
-            ))?;
+            .map_err(|e| EncryptionError::InvalidKeyFormat(format!("Invalid hex format: {}", e)))?;
 
         if key_bytes.len() != 32 {
             return Err(EncryptionError::InvalidKeyFormat(
-                "Master key must be 32 bytes (64 hex characters)".to_string()
+                "Master key must be 32 bytes (64 hex characters)".to_string(),
             ));
         }
 
@@ -63,7 +63,8 @@ impl EncryptionManager {
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         // Encrypt the plaintext
-        let ciphertext = self.cipher
+        let ciphertext = self
+            .cipher
             .encrypt(nonce, plaintext.as_bytes())
             .map_err(|e| EncryptionError::EncryptionFailed(e.to_string()))?;
 
@@ -86,7 +87,7 @@ impl EncryptionManager {
 
         if encrypted_bytes.len() < 12 {
             return Err(EncryptionError::DecryptionFailed(
-                "Invalid encrypted data: too short".to_string()
+                "Invalid encrypted data: too short".to_string(),
             ));
         }
 
@@ -95,15 +96,14 @@ impl EncryptionManager {
         let nonce = Nonce::from_slice(nonce_bytes);
 
         // Decrypt
-        let plaintext = self.cipher
+        let plaintext = self
+            .cipher
             .decrypt(nonce, ciphertext)
             .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))?;
 
         // Convert to string
         String::from_utf8(plaintext)
-            .map_err(|e| EncryptionError::DecryptionFailed(
-                format!("Invalid UTF-8: {}", e)
-            ))
+            .map_err(|e| EncryptionError::DecryptionFailed(format!("Invalid UTF-8: {}", e)))
     }
 
     /// Encrypt a sensitive field and return the encrypted value
@@ -125,7 +125,6 @@ impl EncryptionManager {
 
 /// Convenience functions for global encryption operations
 /// These use a lazy static to avoid recreating the cipher repeatedly
-
 use std::sync::OnceLock;
 
 static ENCRYPTION_MANAGER: OnceLock<EncryptionManager> = OnceLock::new();
@@ -133,19 +132,17 @@ static ENCRYPTION_MANAGER: OnceLock<EncryptionManager> = OnceLock::new();
 /// Initialize the global encryption manager
 pub fn init_encryption() -> EncryptionResult<()> {
     let manager = EncryptionManager::new()?;
-    ENCRYPTION_MANAGER.set(manager)
-        .map_err(|_| EncryptionError::EncryptionFailed(
-            "Failed to initialize encryption manager".to_string()
-        ))?;
+    ENCRYPTION_MANAGER.set(manager).map_err(|_| {
+        EncryptionError::EncryptionFailed("Failed to initialize encryption manager".to_string())
+    })?;
     Ok(())
 }
 
 /// Get the global encryption manager
 fn get_manager() -> EncryptionResult<&'static EncryptionManager> {
-    ENCRYPTION_MANAGER.get()
-        .ok_or_else(|| EncryptionError::EncryptionFailed(
-            "Encryption manager not initialized".to_string()
-        ))
+    ENCRYPTION_MANAGER.get().ok_or_else(|| {
+        EncryptionError::EncryptionFailed("Encryption manager not initialized".to_string())
+    })
 }
 
 /// Encrypt a string using the global encryption manager
@@ -175,7 +172,10 @@ mod tests {
 
     fn setup_test_env() {
         // Use a test key for unit tests
-        env::set_var("LAZABOT_MASTER_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+        env::set_var(
+            "LAZABOT_MASTER_KEY",
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        );
     }
 
     #[test]
@@ -189,11 +189,11 @@ mod tests {
     fn test_encrypt_decrypt_roundtrip() {
         setup_test_env();
         let manager = EncryptionManager::new().unwrap();
-        
+
         let plaintext = "Hello, World! This is a test message.";
         let encrypted = manager.encrypt(plaintext).unwrap();
         let decrypted = manager.decrypt(&encrypted).unwrap();
-        
+
         assert_eq!(plaintext, decrypted);
     }
 
@@ -201,11 +201,11 @@ mod tests {
     fn test_encrypt_decrypt_empty_string() {
         setup_test_env();
         let manager = EncryptionManager::new().unwrap();
-        
+
         let plaintext = "";
         let encrypted = manager.encrypt(plaintext).unwrap();
         let decrypted = manager.decrypt(&encrypted).unwrap();
-        
+
         assert_eq!(plaintext, decrypted);
     }
 
@@ -213,11 +213,11 @@ mod tests {
     fn test_encrypt_decrypt_unicode() {
         setup_test_env();
         let manager = EncryptionManager::new().unwrap();
-        
+
         let plaintext = "Hello 世界! 🌍 This is a unicode test.";
         let encrypted = manager.encrypt(plaintext).unwrap();
         let decrypted = manager.decrypt(&encrypted).unwrap();
-        
+
         assert_eq!(plaintext, decrypted);
     }
 
@@ -225,7 +225,7 @@ mod tests {
     fn test_encrypt_field_empty() {
         setup_test_env();
         let manager = EncryptionManager::new().unwrap();
-        
+
         let result = manager.encrypt_field("").unwrap();
         assert_eq!(result, "");
     }
@@ -234,7 +234,7 @@ mod tests {
     fn test_decrypt_field_empty() {
         setup_test_env();
         let manager = EncryptionManager::new().unwrap();
-        
+
         let result = manager.decrypt_field("").unwrap();
         assert_eq!(result, "");
     }
@@ -243,11 +243,11 @@ mod tests {
     fn test_global_encryption_functions() {
         setup_test_env();
         init_encryption().unwrap();
-        
+
         let plaintext = "Test global encryption";
         let encrypted = encrypt(plaintext).unwrap();
         let decrypted = decrypt(&encrypted).unwrap();
-        
+
         assert_eq!(plaintext, decrypted);
     }
 

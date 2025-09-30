@@ -75,10 +75,10 @@ impl PlaywrightClient {
 
         info!("Starting Playwright server...");
         self.start_server().await?;
-        
+
         // Wait for server to be ready
         self.wait_for_server_ready().await?;
-        
+
         info!("Playwright server is ready");
         Ok(())
     }
@@ -90,7 +90,10 @@ impl PlaywrightClient {
             .join("playwright_server.js");
 
         if !server_path.exists() {
-            return Err(anyhow!("Playwright server script not found at: {:?}", server_path));
+            return Err(anyhow!(
+                "Playwright server script not found at: {:?}",
+                server_path
+            ));
         }
 
         debug!("Starting server from: {:?}", server_path);
@@ -109,23 +112,26 @@ impl PlaywrightClient {
     /// Waits for the server to be ready by checking health endpoint
     async fn wait_for_server_ready(&self) -> Result<()> {
         let start_time = std::time::Instant::now();
-        
+
         while start_time.elapsed() < SERVER_STARTUP_TIMEOUT {
             if self.is_server_healthy().await.is_ok() {
                 return Ok(());
             }
-            
+
             sleep(Duration::from_millis(500)).await;
         }
-        
-        Err(anyhow!("Server failed to start within {:?}", SERVER_STARTUP_TIMEOUT))
+
+        Err(anyhow!(
+            "Server failed to start within {:?}",
+            SERVER_STARTUP_TIMEOUT
+        ))
     }
 
     /// Checks if the server is healthy
     pub async fn is_server_healthy(&self) -> Result<HealthResponse> {
         let response = timeout(
             HEALTH_CHECK_TIMEOUT,
-            self.client.get(&format!("{}/health", SERVER_URL)).send()
+            self.client.get(&format!("{}/health", SERVER_URL)).send(),
         )
         .await
         .map_err(|_| anyhow!("Health check timeout"))?
@@ -156,7 +162,10 @@ impl PlaywrightClient {
             .map_err(|e| anyhow!("Failed to send captcha request: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!("Captcha solving failed: {}", error_text));
         }
 
@@ -168,7 +177,9 @@ impl PlaywrightClient {
         if !captcha_response.success {
             return Err(anyhow!(
                 "Captcha solving failed: {}",
-                captcha_response.error.unwrap_or_else(|| "Unknown error".to_string())
+                captcha_response
+                    .error
+                    .unwrap_or_else(|| "Unknown error".to_string())
             ));
         }
 
@@ -176,7 +187,10 @@ impl PlaywrightClient {
     }
 
     /// Performs checkout flow using the Playwright server
-    pub async fn perform_checkout_flow(&self, request: CheckoutRequest) -> Result<CheckoutResponse> {
+    pub async fn perform_checkout_flow(
+        &self,
+        request: CheckoutRequest,
+    ) -> Result<CheckoutResponse> {
         debug!("Performing checkout flow: {}", request.product_url);
 
         let response = self
@@ -188,7 +202,10 @@ impl PlaywrightClient {
             .map_err(|e| anyhow!("Failed to send checkout request: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!("Checkout flow failed: {}", error_text));
         }
 
@@ -200,7 +217,9 @@ impl PlaywrightClient {
         if !checkout_response.success {
             return Err(anyhow!(
                 "Checkout flow failed: {}",
-                checkout_response.error.unwrap_or_else(|| "Unknown error".to_string())
+                checkout_response
+                    .error
+                    .unwrap_or_else(|| "Unknown error".to_string())
             ));
         }
 
@@ -211,7 +230,9 @@ impl PlaywrightClient {
     pub fn stop_server(&mut self) -> Result<()> {
         if let Some(mut child) = self.server_process.take() {
             debug!("Stopping Playwright server...");
-            child.kill().map_err(|e| anyhow!("Failed to stop server: {}", e))?;
+            child
+                .kill()
+                .map_err(|e| anyhow!("Failed to stop server: {}", e))?;
             info!("Playwright server stopped");
         }
         Ok(())
@@ -234,7 +255,7 @@ mod tests {
     #[tokio::test]
     async fn test_playwright_client_health_check() {
         let client = PlaywrightClient::new();
-        
+
         // This test will only pass if the server is running
         match client.is_server_healthy().await {
             Ok(health) => {
@@ -251,22 +272,22 @@ mod tests {
     #[tokio::test]
     async fn test_playwright_client_lifecycle() {
         let mut client = PlaywrightClient::new();
-        
+
         // Test server startup
         match client.ensure_server_running().await {
             Ok(_) => {
                 println!("Server started successfully");
-                
+
                 // Test health check
                 let health = client.is_server_healthy().await.unwrap();
                 assert_eq!(health.status, "healthy");
-                
+
                 // Test captcha solving
                 let captcha_request = CaptchaRequest {
                     captcha_url: "https://example.com/captcha".to_string(),
                     captcha_type: Some("image".to_string()),
                 };
-                
+
                 match client.solve_captcha(captcha_request).await {
                     Ok(response) => {
                         println!("Captcha response: {:?}", response);
@@ -275,7 +296,7 @@ mod tests {
                         println!("Captcha solving failed (expected): {}", e);
                     }
                 }
-                
+
                 // Test checkout flow
                 let checkout_request = CheckoutRequest {
                     product_url: "https://example.com/product".to_string(),
@@ -284,7 +305,7 @@ mod tests {
                     payment_info: None,
                     user_agent: None,
                 };
-                
+
                 match client.perform_checkout_flow(checkout_request).await {
                     Ok(response) => {
                         println!("Checkout response: {:?}", response);

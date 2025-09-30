@@ -58,16 +58,14 @@ impl Database {
     /// Create a new database instance
     pub fn new<P: AsRef<Path>>(db_path: P) -> Result<Self> {
         let db_path = db_path.as_ref().to_path_buf();
-        
+
         // Ensure parent directory exists
         if let Some(parent) = db_path.parent() {
-            std::fs::create_dir_all(parent)
-                .context("Failed to create database directory")?;
+            std::fs::create_dir_all(parent).context("Failed to create database directory")?;
         }
 
-        let conn = Connection::open(&db_path)
-            .context("Failed to open database connection")?;
-        
+        let conn = Connection::open(&db_path).context("Failed to open database connection")?;
+
         let db = Self {
             conn: Arc::new(Mutex::new(conn)),
             db_path,
@@ -81,9 +79,8 @@ impl Database {
 
     /// Create an in-memory database for testing
     pub fn in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory()
-            .context("Failed to open in-memory database")?;
-        
+        let conn = Connection::open_in_memory().context("Failed to open in-memory database")?;
+
         let db = Self {
             conn: Arc::new(Mutex::new(conn)),
             db_path: PathBuf::from(":memory:"),
@@ -113,19 +110,22 @@ impl Database {
                 updated_at TEXT NOT NULL
             )",
             [],
-        ).context("Failed to create tasks table")?;
+        )
+        .context("Failed to create tasks table")?;
 
         // Create index on task_id for faster lookups
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_tasks_task_id ON tasks(task_id)",
             [],
-        ).context("Failed to create index on tasks")?;
+        )
+        .context("Failed to create index on tasks")?;
 
         // Create index on status for filtering
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)",
             [],
-        ).context("Failed to create index on task status")?;
+        )
+        .context("Failed to create index on task status")?;
 
         // Create orders table
         conn.execute(
@@ -142,19 +142,22 @@ impl Database {
                 updated_at TEXT NOT NULL
             )",
             [],
-        ).context("Failed to create orders table")?;
+        )
+        .context("Failed to create orders table")?;
 
         // Create index on order_id for faster lookups
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders(order_id)",
             [],
-        ).context("Failed to create index on orders")?;
+        )
+        .context("Failed to create index on orders")?;
 
         // Create index on account_id for filtering by account
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_orders_account_id ON orders(account_id)",
             [],
-        ).context("Failed to create index on order account_id")?;
+        )
+        .context("Failed to create index on order account_id")?;
 
         // Create sessions table
         conn.execute(
@@ -169,19 +172,22 @@ impl Database {
                 updated_at TEXT NOT NULL
             )",
             [],
-        ).context("Failed to create sessions table")?;
+        )
+        .context("Failed to create sessions table")?;
 
         // Create index on session_id for faster lookups
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id)",
             [],
-        ).context("Failed to create index on sessions")?;
+        )
+        .context("Failed to create index on sessions")?;
 
         // Create index on account_id for filtering by account
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             [],
-        ).context("Failed to create index on session account_id")?;
+        )
+        .context("Failed to create index on session account_id")?;
 
         debug!("Database schema initialized successfully");
         Ok(())
@@ -200,7 +206,8 @@ impl Database {
             "INSERT INTO tasks (task_id, status, metadata, created_at, updated_at) 
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![task_id, status, metadata, now, now],
-        ).context("Failed to insert task")?;
+        )
+        .context("Failed to insert task")?;
 
         let id = conn.last_insert_rowid();
         debug!("Inserted task with id={}, task_id={}", id, task_id);
@@ -280,12 +287,24 @@ impl Database {
                     id: row.get(0)?,
                     task_id: row.get(1)?,
                     status: row.get(2)?,
-                    started_at: row.get::<_, Option<String>>(3)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok().map(|dt| dt.with_timezone(&Utc))),
-                    completed_at: row.get::<_, Option<String>>(4)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok().map(|dt| dt.with_timezone(&Utc))),
+                    started_at: row.get::<_, Option<String>>(3)?.and_then(|s| {
+                        DateTime::parse_from_rfc3339(&s)
+                            .ok()
+                            .map(|dt| dt.with_timezone(&Utc))
+                    }),
+                    completed_at: row.get::<_, Option<String>>(4)?.and_then(|s| {
+                        DateTime::parse_from_rfc3339(&s)
+                            .ok()
+                            .map(|dt| dt.with_timezone(&Utc))
+                    }),
                     error_message: row.get(5)?,
                     metadata: row.get(6)?,
-                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(7)?).unwrap().with_timezone(&Utc),
-                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?).unwrap().with_timezone(&Utc),
+                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(7)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -341,7 +360,8 @@ impl Database {
         conn.execute(
             "UPDATE orders SET status = ?1, updated_at = ?2 WHERE order_id = ?3",
             params![status, now, order_id],
-        ).context("Failed to update order status")?;
+        )
+        .context("Failed to update order status")?;
 
         debug!("Updated order_id={} to status={}", order_id, status);
         Ok(())
@@ -397,8 +417,12 @@ impl Database {
                     price: row.get(5)?,
                     quantity: row.get(6)?,
                     metadata: row.get(7)?,
-                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?).unwrap().with_timezone(&Utc),
-                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?).unwrap().with_timezone(&Utc),
+                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -458,7 +482,8 @@ impl Database {
              SET status = ?1, cookies = ?2, last_used_at = ?3, updated_at = ?4
              WHERE session_id = ?5",
             params![status, cookies, now, now, session_id],
-        ).context("Failed to update session")?;
+        )
+        .context("Failed to update session")?;
 
         debug!("Updated session_id={} to status={}", session_id, status);
         Ok(())
@@ -509,9 +534,17 @@ impl Database {
                     account_id: row.get(2)?,
                     status: row.get(3)?,
                     cookies: row.get(4)?,
-                    last_used_at: row.get::<_, Option<String>>(5)?.and_then(|s| DateTime::parse_from_rfc3339(&s).ok().map(|dt| dt.with_timezone(&Utc))),
-                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?).unwrap().with_timezone(&Utc),
-                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(7)?).unwrap().with_timezone(&Utc),
+                    last_used_at: row.get::<_, Option<String>>(5)?.and_then(|s| {
+                        DateTime::parse_from_rfc3339(&s)
+                            .ok()
+                            .map(|dt| dt.with_timezone(&Utc))
+                    }),
+                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(7)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -523,8 +556,11 @@ impl Database {
     pub fn delete_session(&self, session_id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
 
-        conn.execute("DELETE FROM sessions WHERE session_id = ?1", params![session_id])
-            .context("Failed to delete session")?;
+        conn.execute(
+            "DELETE FROM sessions WHERE session_id = ?1",
+            params![session_id],
+        )
+        .context("Failed to delete session")?;
 
         debug!("Deleted session_id={}", session_id);
         Ok(())
@@ -552,7 +588,9 @@ mod tests {
 
         // Insert task
         let task_id = 12345u64;
-        let id = db.insert_task(task_id, "pending", Some("{\"test\":\"data\"}")).unwrap();
+        let id = db
+            .insert_task(task_id, "pending", Some("{\"test\":\"data\"}"))
+            .unwrap();
         assert!(id > 0);
 
         // Get task
@@ -561,7 +599,14 @@ mod tests {
         assert_eq!(task.status, "pending");
 
         // Update task
-        db.update_task_status(task_id, "completed", Some(Utc::now()), Some(Utc::now()), None).unwrap();
+        db.update_task_status(
+            task_id,
+            "completed",
+            Some(Utc::now()),
+            Some(Utc::now()),
+            None,
+        )
+        .unwrap();
         let task = db.get_task(task_id).unwrap().unwrap();
         assert_eq!(task.status, "completed");
 
@@ -584,15 +629,17 @@ mod tests {
 
         // Insert order
         let order_id = "ORD-12345";
-        let id = db.insert_order(
-            order_id,
-            "PROD-001",
-            "ACC-001",
-            "pending",
-            99.99,
-            1,
-            Some("{\"notes\":\"test\"}"),
-        ).unwrap();
+        let id = db
+            .insert_order(
+                order_id,
+                "PROD-001",
+                "ACC-001",
+                "pending",
+                99.99,
+                1,
+                Some("{\"notes\":\"test\"}"),
+            )
+            .unwrap();
         assert!(id > 0);
 
         // Get order
@@ -621,12 +668,9 @@ mod tests {
 
         // Insert session
         let session_id = "SESS-12345";
-        let id = db.insert_session(
-            session_id,
-            "ACC-001",
-            "active",
-            Some("cookie_data"),
-        ).unwrap();
+        let id = db
+            .insert_session(session_id, "ACC-001", "active", Some("cookie_data"))
+            .unwrap();
         assert!(id > 0);
 
         // Get session

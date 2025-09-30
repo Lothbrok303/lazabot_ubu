@@ -2,9 +2,7 @@ use anyhow::Result;
 use lazabot::api::ApiClient;
 use lazabot::captcha::MockCaptchaSolver;
 use lazabot::config::AccountSettings;
-use lazabot::core::{
-    Account, CheckoutConfig, CheckoutEngine, Credentials, Product, Session,
-};
+use lazabot::core::{Account, CheckoutConfig, CheckoutEngine, Credentials, Product, Session};
 use std::sync::Arc;
 use tokio;
 use wiremock::matchers::{method, path};
@@ -179,7 +177,10 @@ async fn test_checkout_flow_with_captcha() -> Result<()> {
         .mount(&mock_server)
         .await;
 
-    println!("Captcha flow mock server is running at: {}", mock_server.uri());
+    println!(
+        "Captcha flow mock server is running at: {}",
+        mock_server.uri()
+    );
     println!("Captcha handling structure validated");
 
     Ok(())
@@ -206,7 +207,10 @@ async fn test_checkout_add_to_cart_retry() -> Result<()> {
         .mount(&mock_server)
         .await;
 
-    println!("Retry mechanism mock server is running at: {}", mock_server.uri());
+    println!(
+        "Retry mechanism mock server is running at: {}",
+        mock_server.uri()
+    );
     println!("Retry logic validated");
 
     Ok(())

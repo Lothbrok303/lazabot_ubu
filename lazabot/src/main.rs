@@ -1,16 +1,16 @@
 use anyhow::Result;
-use tracing::{info, Level};
 use clap::Parser;
+use tracing::{info, Level};
 
 mod api;
-mod config;
-mod cli;
-mod proxy;
-mod core;
-mod tasks;
 mod captcha;
+mod cli;
+mod config;
+mod core;
+mod proxy;
+mod tasks;
 
-use cli::{Cli, execute_command};
+use cli::{execute_command, Cli};
 
 #[tokio::main]
 async fn main() -> Result<()> {

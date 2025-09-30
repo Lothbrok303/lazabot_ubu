@@ -1,5 +1,5 @@
-pub mod manager;
 pub mod health;
+pub mod manager;
 
-pub use manager::ProxyManager;
 pub use health::ProxyHealth;
+pub use manager::ProxyManager;

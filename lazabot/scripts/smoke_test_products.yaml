@@ -1,0 +1,7 @@
+products:
+  - id: "smoke-test-product"
+    name: "Smoke Test Product"
+    url: "http://localhost:3001/api/products/smoke-test-product"
+    target_price: 50.00
+    min_stock: 1
+    monitor_interval_ms: 2000

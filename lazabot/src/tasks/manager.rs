@@ -1,12 +1,12 @@
 use anyhow::Result;
-use dashmap::DashMap;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
-use tokio::sync::{Semaphore, broadcast};
-use tokio::task::JoinHandle;
-use tracing::{info, warn, error, debug};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use tokio::sync::{broadcast, Semaphore};
+use tokio::task::JoinHandle;
+use tracing::{debug, error, info, warn};
 
 /// Unique identifier for tasks
 pub type TaskId = u64;
@@ -289,7 +289,8 @@ impl TaskManager {
         let _ = self.shutdown_tx.send(());
 
         // Wait for all running tasks to complete
-        let handles: Vec<_> = self.task_handles
+        let handles: Vec<_> = self
+            .task_handles
             .iter()
             .map(|entry| {
                 let _handle_ref = entry.value();
@@ -312,7 +313,10 @@ impl TaskManager {
         }
 
         if remaining_tasks > 0 {
-            warn!("Shutdown timeout reached, {} tasks still running", remaining_tasks);
+            warn!(
+                "Shutdown timeout reached, {} tasks still running",
+                remaining_tasks
+            );
             // Abort remaining tasks
             for entry in self.task_handles.iter() {
                 entry.value().abort();

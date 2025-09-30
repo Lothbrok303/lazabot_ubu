@@ -69,7 +69,10 @@ where
 
     /// Get all values in the cache
     pub fn values(&self) -> Vec<V> {
-        self.store.iter().map(|entry| entry.value().clone()).collect()
+        self.store
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect()
     }
 
     /// Iterate over all entries and apply a function

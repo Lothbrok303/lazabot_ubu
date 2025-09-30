@@ -6,8 +6,10 @@ pub use performance::PerformanceMonitor;
 
 pub mod session;
 
-pub use session::{SessionManager, Session, Credentials};
+pub use session::{Credentials, Session, SessionManager};
 
 pub mod checkout;
 
-pub use checkout::{CheckoutEngine, CheckoutResult, CheckoutConfig, Product, Account, CheckoutError};
+pub use checkout::{
+    Account, CheckoutConfig, CheckoutEngine, CheckoutError, CheckoutResult, Product,
+};

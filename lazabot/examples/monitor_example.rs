@@ -3,8 +3,8 @@ use std::sync::Arc;
 use tracing::info;
 
 use lazabot::api::{ApiClient, ProxyInfo};
-use lazabot::proxy::ProxyManager;
 use lazabot::core::{MonitorEngine, MonitorTask};
+use lazabot::proxy::ProxyManager;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,9 +30,21 @@ async fn main() -> Result<()> {
 
     // Create monitor tasks for different products
     let products = vec![
-        ("product1", "https://httpbin.org/status/200", "Test Product 1"),
-        ("product2", "https://httpbin.org/status/200", "Test Product 2"),
-        ("product3", "https://httpbin.org/status/404", "Test Product 3 (Not Found)"),
+        (
+            "product1",
+            "https://httpbin.org/status/200",
+            "Test Product 1",
+        ),
+        (
+            "product2",
+            "https://httpbin.org/status/200",
+            "Test Product 2",
+        ),
+        (
+            "product3",
+            "https://httpbin.org/status/404",
+            "Test Product 3 (Not Found)",
+        ),
     ];
 
     let mut event_receivers = Vec::new();
@@ -60,10 +72,13 @@ async fn main() -> Result<()> {
     let event_handle = tokio::spawn(async move {
         for (product_id, mut receiver) in event_receivers {
             while let Some(event) = receiver.recv().await {
-                info!("Product {} availability changed: {}", product_id, event.is_available);
+                info!(
+                    "Product {} availability changed: {}",
+                    product_id, event.is_available
+                );
                 info!("   URL: {}", event.product_url);
                 info!("   Timestamp: {}", event.timestamp);
-                
+
                 if event.is_available {
                     println!("Product '{}' is now AVAILABLE!", product_id);
                 } else {

@@ -6,6 +6,6 @@ pub mod core;
 pub mod integrations;
 pub mod proxy;
 pub mod stealth;
-pub mod tasks;
 pub mod storage;
+pub mod tasks;
 pub mod utils;

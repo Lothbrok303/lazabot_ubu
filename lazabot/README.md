@@ -231,6 +231,67 @@ cargo test --test integration_tests
 cargo test --lib
 ```
 
+### Smoke Testing
+
+The project includes comprehensive smoke tests that validate the complete pipeline:
+
+```bash
+# Run the complete smoke test
+bash scripts/smoke_test.sh
+
+# Verify smoke test results
+bash scripts/verify_results.sh
+```
+
+#### Smoke Test Features
+
+- **Mock Lazada API Server**: Simulates real Lazada endpoints
+- **Product Monitoring**: Tests product availability detection
+- **Flash Sale Simulation**: Triggers mock flash sales
+- **Checkout Process**: Simulates order creation
+- **Database Storage**: Verifies order persistence
+- **End-to-End Validation**: Complete pipeline testing
+
+#### Expected Output
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║                    LAZABOT SMOKE TEST                        ║
+║                                                              ║
+║  Monitor → Flash Sale Detection → Checkout → Database        ║
+╚══════════════════════════════════════════════════════════════╝
+
+[12:34:56] Checking prerequisites...
+✓ Prerequisites check passed
+[12:34:56] Creating test products configuration...
+✓ Test products configuration created
+[12:34:57] Starting mock Lazada API server...
+✓ Mock server started (PID: 12345)
+[12:34:58] Building lazabot...
+✓ Lazabot built successfully
+[12:34:59] Simulating monitoring and checkout process...
+✓ Flash sale triggered successfully
+✓ Checkout attempt successful
+[12:35:05] Verifying database storage...
+✓ Order found in mock server (count: 1)
+
+🎉 ALL TESTS PASSED! 🎉
+The core pipeline is working correctly.
+```
+
+#### Verification Commands
+
+```bash
+# Check database for order rows
+sqlite3 smoke_test.db "SELECT * FROM orders;"
+
+# Check logs for checkout triggered
+grep -i "checkout triggered" lazabot.log
+
+# Verify mock server orders
+curl -s http://localhost:3001/api/orders | jq
+```
+
 ### Test Coverage
 
 - Unit tests for all modules

@@ -6,7 +6,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
 
-use crate::api::{ApiClient};
+use crate::api::ApiClient;
 use crate::captcha::CaptchaSolverTrait;
 use crate::config::AccountSettings;
 use crate::core::Session;
@@ -56,40 +56,40 @@ pub struct Account {
 pub enum CheckoutError {
     #[error("Add to cart failed: {0}")]
     AddToCartFailed(String),
-    
+
     #[error("Checkout URL retrieval failed: {0}")]
     CheckoutUrlFailed(String),
-    
+
     #[error("Shipping info update failed: {0}")]
     ShippingFailed(String),
-    
+
     #[error("Payment selection failed: {0}")]
     PaymentFailed(String),
-    
+
     #[error("Captcha detection failed: {0}")]
     CaptchaDetectionFailed(String),
-    
+
     #[error("Captcha solving failed: {0}")]
     CaptchaSolvingFailed(String),
-    
+
     #[error("Order submission failed: {0}")]
     OrderSubmissionFailed(String),
-    
+
     #[error("Network error: {0}")]
     NetworkError(String),
-    
+
     #[error("Timeout: {0}")]
     Timeout(String),
-    
+
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
-    
+
     #[error("Session expired")]
     SessionExpired,
-    
+
     #[error("Product unavailable")]
     ProductUnavailable,
-    
+
     #[error("Other error: {0}")]
     Other(String),
 }
@@ -227,7 +227,10 @@ impl CheckoutEngine {
         session: &Session,
     ) -> Result<CheckoutResult> {
         let start_time = std::time::Instant::now();
-        info!("Starting instant checkout for product: {} ({})", product.name, product.id);
+        info!(
+            "Starting instant checkout for product: {} ({})",
+            product.name, product.id
+        );
 
         // Verify session is valid
         if !session.is_valid {
@@ -263,7 +266,10 @@ impl CheckoutEngine {
         };
 
         // Step 3: Fill shipping information
-        if let Err(e) = self.fill_shipping_info(&checkout_url, &account.settings, session).await {
+        if let Err(e) = self
+            .fill_shipping_info(&checkout_url, &account.settings, session)
+            .await
+        {
             error!("Failed to fill shipping info: {}", e);
             return Ok(CheckoutResult::failure(
                 format!("Shipping info failed: {}", e),
@@ -272,7 +278,10 @@ impl CheckoutEngine {
         }
 
         // Step 4: Select payment method
-        if let Err(e) = self.select_payment_method(&checkout_url, &account.settings, session).await {
+        if let Err(e) = self
+            .select_payment_method(&checkout_url, &account.settings, session)
+            .await
+        {
             error!("Failed to select payment method: {}", e);
             return Ok(CheckoutResult::failure(
                 format!("Payment selection failed: {}", e),
@@ -293,7 +302,10 @@ impl CheckoutEngine {
         };
 
         // Step 6: Submit order with retries
-        let order_id = match self.submit_order_with_retry(&checkout_url, captcha_token.as_deref(), session).await {
+        let order_id = match self
+            .submit_order_with_retry(&checkout_url, captcha_token.as_deref(), session)
+            .await
+        {
             Ok(id) => id,
             Err(e) => {
                 error!("Failed to submit order: {}", e);
@@ -305,7 +317,10 @@ impl CheckoutEngine {
         };
 
         let duration_ms = start_time.elapsed().as_millis() as u64;
-        info!("Checkout completed successfully! Order ID: {} (took {}ms)", order_id, duration_ms);
+        info!(
+            "Checkout completed successfully! Order ID: {} (took {}ms)",
+            order_id, duration_ms
+        );
         Ok(CheckoutResult::success(order_id, duration_ms))
     }
 
@@ -314,7 +329,11 @@ impl CheckoutEngine {
         let mut delay = self.config.base_delay_ms;
 
         for attempt in 0..self.config.add_to_cart_retries {
-            debug!("Add to cart attempt {} of {}", attempt + 1, self.config.add_to_cart_retries);
+            debug!(
+                "Add to cart attempt {} of {}",
+                attempt + 1,
+                self.config.add_to_cart_retries
+            );
 
             match self.add_to_cart(product, session).await {
                 Ok(cart_id) => {
@@ -323,20 +342,23 @@ impl CheckoutEngine {
                 }
                 Err(e) => {
                     warn!("Add to cart attempt {} failed: {}", attempt + 1, e);
-                    
+
                     if attempt < self.config.add_to_cart_retries - 1 {
                         debug!("Waiting {}ms before retry", delay);
                         sleep(Duration::from_millis(delay)).await;
                         delay = std::cmp::min(
                             (delay as f64 * self.config.backoff_multiplier) as u64,
-                            self.config.max_delay_ms
+                            self.config.max_delay_ms,
                         );
                     }
                 }
             }
         }
 
-        Err(anyhow!("Failed to add to cart after {} retries", self.config.add_to_cart_retries))
+        Err(anyhow!(
+            "Failed to add to cart after {} retries",
+            self.config.add_to_cart_retries
+        ))
     }
 
     /// Add product to cart
@@ -350,7 +372,8 @@ impl CheckoutEngine {
             "session_token": session.id,
         });
 
-        let response = self.api_client
+        let response = self
+            .api_client
             .request(
                 Method::POST,
                 &url,
@@ -362,7 +385,10 @@ impl CheckoutEngine {
             .context("Failed to send add-to-cart request")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Add to cart failed with status {}", response.status));
+            return Err(anyhow!(
+                "Add to cart failed with status {}",
+                response.status
+            ));
         }
 
         let cart_response: AddToCartResponse = serde_json::from_slice(&response.body)
@@ -371,20 +397,31 @@ impl CheckoutEngine {
         if !cart_response.success {
             return Err(anyhow!(
                 "Add to cart unsuccessful: {}",
-                cart_response.message.unwrap_or_else(|| "Unknown error".to_string())
+                cart_response
+                    .message
+                    .unwrap_or_else(|| "Unknown error".to_string())
             ));
         }
 
-        cart_response.cart_id
+        cart_response
+            .cart_id
             .ok_or_else(|| anyhow!("Cart ID not provided in response"))
     }
 
     /// Get checkout URL with retry logic
-    async fn get_checkout_url_with_retry(&self, cart_id: &str, session: &Session) -> Result<String> {
+    async fn get_checkout_url_with_retry(
+        &self,
+        cart_id: &str,
+        session: &Session,
+    ) -> Result<String> {
         let mut delay = self.config.base_delay_ms;
 
         for attempt in 0..self.config.checkout_url_retries {
-            debug!("Get checkout URL attempt {} of {}", attempt + 1, self.config.checkout_url_retries);
+            debug!(
+                "Get checkout URL attempt {} of {}",
+                attempt + 1,
+                self.config.checkout_url_retries
+            );
 
             match self.get_checkout_url(cart_id, session).await {
                 Ok(url) => {
@@ -393,20 +430,23 @@ impl CheckoutEngine {
                 }
                 Err(e) => {
                     warn!("Get checkout URL attempt {} failed: {}", attempt + 1, e);
-                    
+
                     if attempt < self.config.checkout_url_retries - 1 {
                         debug!("Waiting {}ms before retry", delay);
                         sleep(Duration::from_millis(delay)).await;
                         delay = std::cmp::min(
                             (delay as f64 * self.config.backoff_multiplier) as u64,
-                            self.config.max_delay_ms
+                            self.config.max_delay_ms,
                         );
                     }
                 }
             }
         }
 
-        Err(anyhow!("Failed to get checkout URL after {} retries", self.config.checkout_url_retries))
+        Err(anyhow!(
+            "Failed to get checkout URL after {} retries",
+            self.config.checkout_url_retries
+        ))
     }
 
     /// Get checkout URL
@@ -415,25 +455,24 @@ impl CheckoutEngine {
 
         let url = format!("https://api.lazada.com/cart/{}/checkout", cart_id);
 
-        let response = self.api_client
-            .request(
-                Method::GET,
-                &url,
-                None,
-                None,
-                None,
-            )
+        let response = self
+            .api_client
+            .request(Method::GET, &url, None, None, None)
             .await
             .context("Failed to get checkout URL")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Get checkout URL failed with status {}", response.status));
+            return Err(anyhow!(
+                "Get checkout URL failed with status {}",
+                response.status
+            ));
         }
 
         let checkout_response: CheckoutUrlResponse = serde_json::from_slice(&response.body)
             .context("Failed to parse checkout URL response")?;
 
-        checkout_response.checkout_url
+        checkout_response
+            .checkout_url
             .ok_or_else(|| anyhow!("Checkout URL not provided in response"))
     }
 
@@ -452,7 +491,8 @@ impl CheckoutEngine {
             "session_token": session.id,
         });
 
-        let response = self.api_client
+        let response = self
+            .api_client
             .request(
                 Method::POST,
                 &url,
@@ -464,7 +504,10 @@ impl CheckoutEngine {
             .context("Failed to update shipping info")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Fill shipping info failed with status {}", response.status));
+            return Err(anyhow!(
+                "Fill shipping info failed with status {}",
+                response.status
+            ));
         }
 
         info!("Shipping information filled successfully");
@@ -486,7 +529,8 @@ impl CheckoutEngine {
             "session_token": session.id,
         });
 
-        let response = self.api_client
+        let response = self
+            .api_client
             .request(
                 Method::POST,
                 &url,
@@ -498,7 +542,10 @@ impl CheckoutEngine {
             .context("Failed to select payment method")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Select payment method failed with status {}", response.status));
+            return Err(anyhow!(
+                "Select payment method failed with status {}",
+                response.status
+            ));
         }
 
         info!("Payment method selected successfully");
@@ -515,19 +562,17 @@ impl CheckoutEngine {
 
         let url = format!("{}/captcha-check", checkout_url);
 
-        let response = self.api_client
-            .request(
-                Method::GET,
-                &url,
-                None,
-                None,
-                None,
-            )
+        let response = self
+            .api_client
+            .request(Method::GET, &url, None, None, None)
             .await
             .context("Failed to detect captcha")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Captcha detection failed with status {}", response.status));
+            return Err(anyhow!(
+                "Captcha detection failed with status {}",
+                response.status
+            ));
         }
 
         let captcha_detection: CaptchaDetectionResponse = serde_json::from_slice(&response.body)
@@ -543,9 +588,11 @@ impl CheckoutEngine {
         // Solve captcha based on type
         let captcha_token = match captcha_detection.captcha_type.as_deref() {
             Some("recaptcha_v2") => {
-                let site_key = captcha_detection.site_key
+                let site_key = captcha_detection
+                    .site_key
                     .ok_or_else(|| anyhow!("Site key not provided for reCAPTCHA"))?;
-                let page_url = captcha_detection.page_url
+                let page_url = captcha_detection
+                    .page_url
                     .unwrap_or_else(|| checkout_url.to_string());
 
                 self.captcha_solver
@@ -578,29 +625,39 @@ impl CheckoutEngine {
         let mut delay = self.config.base_delay_ms;
 
         for attempt in 0..self.config.submission_retries {
-            debug!("Submit order attempt {} of {}", attempt + 1, self.config.submission_retries);
+            debug!(
+                "Submit order attempt {} of {}",
+                attempt + 1,
+                self.config.submission_retries
+            );
 
-            match self.submit_order(checkout_url, captcha_token, session).await {
+            match self
+                .submit_order(checkout_url, captcha_token, session)
+                .await
+            {
                 Ok(order_id) => {
                     info!("Successfully submitted order: {}", order_id);
                     return Ok(order_id);
                 }
                 Err(e) => {
                     warn!("Submit order attempt {} failed: {}", attempt + 1, e);
-                    
+
                     if attempt < self.config.submission_retries - 1 {
                         debug!("Waiting {}ms before retry", delay);
                         sleep(Duration::from_millis(delay)).await;
                         delay = std::cmp::min(
                             (delay as f64 * self.config.backoff_multiplier) as u64,
-                            self.config.max_delay_ms
+                            self.config.max_delay_ms,
                         );
                     }
                 }
             }
         }
 
-        Err(anyhow!("Failed to submit order after {} retries", self.config.submission_retries))
+        Err(anyhow!(
+            "Failed to submit order after {} retries",
+            self.config.submission_retries
+        ))
     }
 
     /// Submit order
@@ -621,7 +678,8 @@ impl CheckoutEngine {
             body_data["captcha_token"] = serde_json::json!(token);
         }
 
-        let response = self.api_client
+        let response = self
+            .api_client
             .request(
                 Method::POST,
                 &url,
@@ -633,20 +691,27 @@ impl CheckoutEngine {
             .context("Failed to submit order")?;
 
         if response.status != 200 {
-            return Err(anyhow!("Submit order failed with status {}", response.status));
+            return Err(anyhow!(
+                "Submit order failed with status {}",
+                response.status
+            ));
         }
 
-        let submission_response: OrderSubmissionResponse = serde_json::from_slice(&response.body)
-            .context("Failed to parse order submission response")?;
+        let submission_response: OrderSubmissionResponse =
+            serde_json::from_slice(&response.body)
+                .context("Failed to parse order submission response")?;
 
         if !submission_response.success {
             return Err(anyhow!(
                 "Order submission unsuccessful: {}",
-                submission_response.error.unwrap_or_else(|| "Unknown error".to_string())
+                submission_response
+                    .error
+                    .unwrap_or_else(|| "Unknown error".to_string())
             ));
         }
 
-        submission_response.order_id
+        submission_response
+            .order_id
             .ok_or_else(|| anyhow!("Order ID not provided in response"))
     }
 }

@@ -137,5 +137,5 @@ pub struct MonitoringConfig {
 }
 
 // Re-export the loader functions that are actually used
-pub use loader::{load_config, create_default_config};
+pub use loader::{create_default_config, load_config};
 pub mod encryption;

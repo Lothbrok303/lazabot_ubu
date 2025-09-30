@@ -8,8 +8,8 @@
 
 use anyhow::Result;
 use lazabot::tasks::{Task, TaskManager, TaskStatus};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
 /// A simple task for testing that tracks concurrent execution
@@ -68,7 +68,7 @@ async fn test_50_tasks_with_max_5_concurrent() {
     // Create TaskManager with max_concurrent = 5
     let max_concurrent = 5;
     let manager = Arc::new(TaskManager::new(max_concurrent));
-    
+
     // Counters to track concurrent execution
     let concurrent_counter = Arc::new(AtomicUsize::new(0));
     let max_observed = Arc::new(AtomicUsize::new(0));
@@ -88,7 +88,10 @@ async fn test_50_tasks_with_max_5_concurrent() {
             max_obs,
         );
 
-        let task_id = manager.submit_task(task).await.expect("Failed to submit task");
+        let task_id = manager
+            .submit_task(task)
+            .await
+            .expect("Failed to submit task");
         task_ids.push(task_id);
     }
 
@@ -102,7 +105,7 @@ async fn test_50_tasks_with_max_5_concurrent() {
     // Verify all tasks completed successfully
     let completed_tasks = manager.get_tasks_by_status(TaskStatus::Completed);
     let failed_tasks = manager.get_tasks_by_status(TaskStatus::Failed);
-    
+
     println!("Completed tasks: {}", completed_tasks.len());
     println!("Failed tasks: {}", failed_tasks.len());
     println!("Total tasks: {}", manager.total_tasks());
@@ -114,7 +117,7 @@ async fn test_50_tasks_with_max_5_concurrent() {
     let max_concurrent_observed = max_observed.load(Ordering::SeqCst);
     println!("Max concurrent tasks observed: {}", max_concurrent_observed);
     println!("Expected max concurrent: {}", max_concurrent);
-    
+
     assert!(
         max_concurrent_observed <= max_concurrent,
         "Observed concurrency ({}) should not exceed limit ({})",
@@ -128,20 +131,23 @@ async fn test_50_tasks_with_max_5_concurrent() {
 #[tokio::test]
 async fn test_graceful_shutdown_with_running_tasks() {
     let manager = Arc::new(TaskManager::new(2));
-    
+
     // Submit several long-running tasks
     for i in 0..5 {
         let counter = Arc::new(AtomicUsize::new(0));
         let max_obs = Arc::new(AtomicUsize::new(0));
-        
+
         let task = TestTask::new(
             format!("long_task_{}", i),
             300, // 300ms
             counter,
             max_obs,
         );
-        
-        manager.submit_task(task).await.expect("Failed to submit task");
+
+        manager
+            .submit_task(task)
+            .await
+            .expect("Failed to submit task");
     }
 
     println!("Submitted 5 long-running tasks");
@@ -150,7 +156,7 @@ async fn test_graceful_shutdown_with_running_tasks() {
     sleep(Duration::from_millis(50)).await;
 
     println!("Initiating graceful shutdown...");
-    
+
     // Initiate graceful shutdown
     manager.shutdown().await;
 
@@ -163,9 +169,12 @@ async fn test_graceful_shutdown_with_running_tasks() {
     let counter = Arc::new(AtomicUsize::new(0));
     let max_obs = Arc::new(AtomicUsize::new(0));
     let task = TestTask::new("late_task", 100, counter, max_obs);
-    
+
     let result = manager.submit_task(task).await;
-    assert!(result.is_err(), "Should not be able to submit tasks after shutdown");
+    assert!(
+        result.is_err(),
+        "Should not be able to submit tasks after shutdown"
+    );
 
     println!("✓ Test passed: Graceful shutdown works correctly");
 }

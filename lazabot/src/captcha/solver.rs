@@ -75,13 +75,17 @@ impl CaptchaSolver {
             }
             CaptchaType::ReCaptchaV2 => {
                 params.push(("googlekey", data));
-                if let Some(url) = additional_params.and_then(|p| p.iter().find(|(k, _)| *k == "pageurl").map(|(_, v)| *v)) {
+                if let Some(url) = additional_params
+                    .and_then(|p| p.iter().find(|(k, _)| *k == "pageurl").map(|(_, v)| *v))
+                {
                     params.push(("pageurl", url));
                 }
             }
             CaptchaType::ReCaptchaV3 => {
                 params.push(("googlekey", data));
-                if let Some(url) = additional_params.and_then(|p| p.iter().find(|(k, _)| *k == "pageurl").map(|(_, v)| *v)) {
+                if let Some(url) = additional_params
+                    .and_then(|p| p.iter().find(|(k, _)| *k == "pageurl").map(|(_, v)| *v))
+                {
                     params.push(("pageurl", url));
                 }
                 // Default action for ReCaptchaV3
@@ -91,9 +95,9 @@ impl CaptchaSolver {
         }
 
         let url = format!("{}{}", API_BASE_URL, SUBMIT_ENDPOINT);
-        
+
         debug!("Submitting captcha to 2Captcha API: {}", url);
-        
+
         let response = timeout(
             Duration::from_secs(REQUEST_TIMEOUT),
             self.client.post(&url).form(&params).send(),
@@ -123,10 +127,10 @@ impl CaptchaSolver {
     /// Poll for captcha result
     async fn poll_result(&self, captcha_id: &str) -> Result<String> {
         let url = format!("{}{}", API_BASE_URL, RESULT_ENDPOINT);
-        
+
         for attempt in 1..=MAX_POLLING_ATTEMPTS {
             debug!("Polling attempt {} for captcha ID: {}", attempt, captcha_id);
-            
+
             let params = vec![
                 ("key", self.api_key.as_str()),
                 ("action", "get"),
@@ -150,7 +154,10 @@ impl CaptchaSolver {
 
             if response_text == "CAPCHA_NOT_READY" {
                 if attempt == MAX_POLLING_ATTEMPTS {
-                    return Err(anyhow!("Captcha solving timeout after {} attempts", MAX_POLLING_ATTEMPTS));
+                    return Err(anyhow!(
+                        "Captcha solving timeout after {} attempts",
+                        MAX_POLLING_ATTEMPTS
+                    ));
                 }
                 warn!("Captcha not ready, waiting {} seconds...", POLLING_INTERVAL);
                 sleep(Duration::from_secs(POLLING_INTERVAL)).await;
@@ -186,28 +193,28 @@ impl CaptchaSolverTrait for CaptchaSolver {
     /// Solve an image captcha
     async fn solve_image(&self, image_bytes: &[u8]) -> Result<String> {
         info!("Solving image captcha ({} bytes)", image_bytes.len());
-        
-        let base64_image = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, image_bytes);
+
+        let base64_image =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, image_bytes);
         let captcha_id = self
             .submit_captcha(CaptchaType::Image, &base64_image, None)
             .await?;
-        
+
         self.poll_result(&captcha_id).await
     }
 
     /// Solve a reCAPTCHA v2
     async fn solve_recaptcha(&self, site_key: &str, page_url: &str) -> Result<String> {
-        info!("Solving reCAPTCHA v2 for site: {} at URL: {}", site_key, page_url);
-        
+        info!(
+            "Solving reCAPTCHA v2 for site: {} at URL: {}",
+            site_key, page_url
+        );
+
         let additional_params = vec![("pageurl", page_url)];
         let captcha_id = self
-            .submit_captcha(
-                CaptchaType::ReCaptchaV2,
-                site_key,
-                Some(additional_params),
-            )
+            .submit_captcha(CaptchaType::ReCaptchaV2, site_key, Some(additional_params))
             .await?;
-        
+
         self.poll_result(&captcha_id).await
     }
 }
@@ -256,7 +263,10 @@ mod tests {
     #[tokio::test]
     async fn test_mock_recaptcha_solving() {
         let solver = MockCaptchaSolver::new("test123".to_string(), "recaptcha123".to_string());
-        let result = solver.solve_recaptcha("site_key", "https://example.com").await.unwrap();
+        let result = solver
+            .solve_recaptcha("site_key", "https://example.com")
+            .await
+            .unwrap();
         assert_eq!(result, "recaptcha123");
     }
 
@@ -270,7 +280,13 @@ mod tests {
     fn test_captcha_type_methods() {
         let solver = CaptchaSolver::new("test_api_key".to_string());
         assert_eq!(solver.get_method(&CaptchaType::Image), "base64");
-        assert_eq!(solver.get_method(&CaptchaType::ReCaptchaV2), "userrecaptcha");
-        assert_eq!(solver.get_method(&CaptchaType::ReCaptchaV3), "userrecaptcha");
+        assert_eq!(
+            solver.get_method(&CaptchaType::ReCaptchaV2),
+            "userrecaptcha"
+        );
+        assert_eq!(
+            solver.get_method(&CaptchaType::ReCaptchaV3),
+            "userrecaptcha"
+        );
     }
 }

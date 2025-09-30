@@ -1,5 +1,5 @@
 //! Lightweight metrics server for exposing operational metrics
-//! 
+//!
 //! This module provides a simple HTTP server that exposes metrics in Prometheus format:
 //! - Request counters (total, success, failure)
 //! - Request rate (requests per second)
@@ -9,9 +9,9 @@
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tracing::{info, error, warn};
+use tokio::net::TcpListener;
+use tracing::{error, info, warn};
 
 use parking_lot::Mutex;
 /// Shared metrics collector
@@ -26,10 +26,10 @@ struct MetricsInner {
     success_requests: AtomicU64,
     failed_requests: AtomicU64,
     active_tasks: AtomicUsize,
-    
+
     // Timing
     start_time: Instant,
-    
+
     // Rate tracking
     last_request_count: AtomicU64,
     last_rate_check: Mutex<Instant>,
@@ -93,7 +93,7 @@ impl MetricsCollector {
         let mut last_check = self.inner.last_rate_check.lock();
         let time_since_last_check = last_check.elapsed();
         let last_count = self.inner.last_request_count.load(Ordering::Relaxed);
-        
+
         let requests_per_sec = if time_since_last_check.as_secs() > 0 {
             let new_requests = total.saturating_sub(last_count);
             (new_requests as f64) / time_since_last_check.as_secs_f64()
@@ -103,7 +103,9 @@ impl MetricsCollector {
 
         // Update for next calculation
         if time_since_last_check >= Duration::from_secs(1) {
-            self.inner.last_request_count.store(total, Ordering::Relaxed);
+            self.inner
+                .last_request_count
+                .store(total, Ordering::Relaxed);
             *last_check = Instant::now();
         }
 
@@ -120,7 +122,7 @@ impl MetricsCollector {
     /// Format metrics in Prometheus format
     fn format_prometheus(&self) -> String {
         let snapshot = self.get_snapshot();
-        
+
         format!(
             "# HELP lazabot_requests_total Total number of requests\n\
              # TYPE lazabot_requests_total counter\n\
@@ -190,20 +192,23 @@ impl MetricsServer {
     /// Start the metrics server
     pub async fn start(self) -> anyhow::Result<()> {
         let listener = TcpListener::bind(&self.bind_addr).await?;
-        info!("Metrics server listening on http://{}/metrics", self.bind_addr);
+        info!(
+            "Metrics server listening on http://{}/metrics",
+            self.bind_addr
+        );
 
         loop {
             match listener.accept().await {
                 Ok((mut socket, addr)) => {
                     let collector = self.collector.clone();
-                    
+
                     tokio::spawn(async move {
                         let mut buffer = vec![0u8; 1024];
-                        
+
                         match socket.read(&mut buffer).await {
                             Ok(n) if n > 0 => {
                                 let request = String::from_utf8_lossy(&buffer[..n]);
-                                
+
                                 // Simple HTTP request parsing
                                 if request.starts_with("GET /metrics") {
                                     let metrics = collector.format_prometheus();
@@ -216,7 +221,7 @@ impl MetricsServer {
                                         metrics.len(),
                                         metrics
                                     );
-                                    
+
                                     if let Err(e) = socket.write_all(response.as_bytes()).await {
                                         error!("Failed to write response: {}", e);
                                     }
@@ -226,7 +231,7 @@ impl MetricsServer {
                                                    Content-Length: 2\r\n\
                                                    \r\n\
                                                    OK";
-                                    
+
                                     if let Err(e) = socket.write_all(response.as_bytes()).await {
                                         error!("Failed to write response: {}", e);
                                     }
@@ -236,7 +241,7 @@ impl MetricsServer {
                                                    Content-Length: 9\r\n\
                                                    \r\n\
                                                    Not Found";
-                                    
+
                                     if let Err(e) = socket.write_all(response.as_bytes()).await {
                                         error!("Failed to write response: {}", e);
                                     }
@@ -266,11 +271,11 @@ mod tests {
     #[test]
     fn test_metrics_collector() {
         let collector = MetricsCollector::new();
-        
+
         collector.inc_total_requests();
         collector.inc_success_requests();
         collector.inc_active_tasks();
-        
+
         let snapshot = collector.get_snapshot();
         assert_eq!(snapshot.total_requests, 1);
         assert_eq!(snapshot.success_requests, 1);
@@ -281,12 +286,12 @@ mod tests {
     #[test]
     fn test_prometheus_format() {
         let collector = MetricsCollector::new();
-        
+
         collector.inc_total_requests();
         collector.inc_success_requests();
-        
+
         let output = collector.format_prometheus();
-        
+
         assert!(output.contains("lazabot_requests_total 1"));
         assert!(output.contains("lazabot_requests_success_total 1"));
         assert!(output.contains("lazabot_active_tasks"));
@@ -296,7 +301,7 @@ mod tests {
     async fn test_metrics_server_creation() {
         let collector = MetricsCollector::new();
         let server = MetricsServer::new(collector, "127.0.0.1:9090");
-        
+
         assert_eq!(server.bind_addr, "127.0.0.1:9090");
     }
 }

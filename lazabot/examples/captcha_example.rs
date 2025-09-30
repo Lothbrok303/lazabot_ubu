@@ -7,9 +7,7 @@ use tracing_subscriber;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     // Example 1: Create solver with API key from environment
     let solver = match CaptchaSolver::from_env() {
@@ -35,7 +33,7 @@ async fn main() -> Result<()> {
     // Example 3: Solve a reCAPTCHA
     let site_key = "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-";
     let page_url = "https://www.google.com/recaptcha/api2/demo";
-    
+
     match solver.solve_recaptcha(site_key, page_url).await {
         Ok(result) => info!("reCAPTCHA solved: {}", result),
         Err(e) => info!("Failed to solve reCAPTCHA: {}", e),
@@ -46,9 +44,9 @@ async fn main() -> Result<()> {
 
 async fn run_mock_example() -> Result<()> {
     use lazabot::captcha::MockCaptchaSolver;
-    
+
     info!("Running mock captcha solver example");
-    
+
     let mock_solver = MockCaptchaSolver::new(
         "mock_image_result".to_string(),
         "mock_recaptcha_result".to_string(),

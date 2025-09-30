@@ -1,10 +1,10 @@
-use anyhow::{Result, Context};
-use reqwest::{Client, ClientBuilder, Method, Url, header::HeaderMap};
+use anyhow::{Context, Result};
 use reqwest::cookie::Jar;
+use reqwest::{header::HeaderMap, Client, ClientBuilder, Method, Url};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{info, warn, error, debug};
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Clone)]
 pub struct ProxyInfo {
@@ -16,7 +16,12 @@ pub struct ProxyInfo {
 
 impl ProxyInfo {
     pub fn new(host: String, port: u16) -> Self {
-        Self { host, port, username: None, password: None }
+        Self {
+            host,
+            port,
+            username: None,
+            password: None,
+        }
     }
 
     pub fn with_auth(mut self, username: String, password: String) -> Self {
@@ -46,7 +51,12 @@ pub struct ResponseBody {
 impl ResponseBody {
     pub fn new(status: u16, headers: HeaderMap, body: Vec<u8>) -> Self {
         let text = String::from_utf8_lossy(&body).to_string();
-        Self { status, headers, body, text }
+        Self {
+            status,
+            headers,
+            body,
+            text,
+        }
     }
 }
 
@@ -79,7 +89,7 @@ impl ApiClient {
     pub fn new(user_agent: Option<String>) -> Result<Self> {
         let cookie_store = Arc::new(Jar::default());
         let ua = user_agent.unwrap_or_else(|| "Lazabot/1.0".to_string());
-        
+
         let builder = ClientBuilder::new()
             .cookie_provider(cookie_store)
             .timeout(Duration::from_secs(30))
@@ -88,7 +98,11 @@ impl ApiClient {
             .user_agent(&ua);
 
         let client = builder.build().context("Failed to create HTTP client")?;
-        Ok(Self { client, user_agent: ua, retry_config: RetryConfig::default() })
+        Ok(Self {
+            client,
+            user_agent: ua,
+            retry_config: RetryConfig::default(),
+        })
     }
 
     pub fn with_retry_config(mut self, config: RetryConfig) -> Self {
@@ -105,12 +119,12 @@ impl ApiClient {
         proxy: Option<ProxyInfo>,
     ) -> Result<ResponseBody> {
         let url = Url::parse(url).context("Invalid URL")?;
-        
+
         // Create client with proxy if provided
         let client = if let Some(proxy_info) = &proxy {
             let proxy_url = proxy_info.to_url()?;
             let proxy = reqwest::Proxy::all(&proxy_url).context("Failed to create proxy")?;
-            
+
             let cookie_store = Arc::new(Jar::default());
             let builder = ClientBuilder::new()
                 .cookie_provider(cookie_store)
@@ -146,24 +160,35 @@ impl ApiClient {
         let mut delay = self.retry_config.base_delay_ms;
 
         for attempt in 0..=self.retry_config.max_retries {
-            let request = request_builder.try_clone().context("Failed to clone request")?;
+            let request = request_builder
+                .try_clone()
+                .context("Failed to clone request")?;
 
-            debug!("Attempt {} of {} for request", attempt + 1, self.retry_config.max_retries + 1);
+            debug!(
+                "Attempt {} of {} for request",
+                attempt + 1,
+                self.retry_config.max_retries + 1
+            );
 
             match request.send().await {
                 Ok(response) => {
                     let status = response.status().as_u16();
                     let headers = response.headers().clone();
                     let url = response.url().clone();
-                    
+
                     match response.bytes().await {
                         Ok(body_bytes) => {
-                            let response_body = ResponseBody::new(status, headers, body_bytes.to_vec());
+                            let response_body =
+                                ResponseBody::new(status, headers, body_bytes.to_vec());
                             info!("Request successful: {} {}", status, url);
                             return Ok(response_body);
                         }
                         Err(e) => {
-                            warn!("Failed to read response body on attempt {}: {}", attempt + 1, e);
+                            warn!(
+                                "Failed to read response body on attempt {}: {}",
+                                attempt + 1,
+                                e
+                            );
                             last_error = Some(e.into());
                         }
                     }
@@ -179,7 +204,7 @@ impl ApiClient {
                 sleep(Duration::from_millis(delay)).await;
                 delay = std::cmp::min(
                     (delay as f64 * self.retry_config.backoff_multiplier) as u64,
-                    self.retry_config.max_delay_ms
+                    self.retry_config.max_delay_ms,
                 );
             }
         }
@@ -233,15 +258,21 @@ mod tests {
 impl ApiClient {
     pub fn with_cookie_jar(cookie_jar: Arc<Jar>) -> Result<ApiClient> {
         let ua = "Lazabot/1.0".to_string();
-        
+
         let builder = ClientBuilder::new()
             .cookie_provider(cookie_jar)
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
-           .redirect(reqwest::redirect::Policy::limited(10))
+            .redirect(reqwest::redirect::Policy::limited(10))
             .user_agent(&ua);
 
-        let client = builder.build().context("Failed to create HTTP client with cookie jar")?;
-        Ok(ApiClient { client, user_agent: ua, retry_config: RetryConfig::default() })
+        let client = builder
+            .build()
+            .context("Failed to create HTTP client with cookie jar")?;
+        Ok(ApiClient {
+            client,
+            user_agent: ua,
+            retry_config: RetryConfig::default(),
+        })
     }
 }

@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use tracing::{info, debug, warn};
+use tracing::{debug, info, warn};
 
 /// Performance monitoring utility for tracking operation latencies and metrics
 #[derive(Debug, Clone)]
@@ -27,11 +27,17 @@ impl PerformanceMonitor {
     pub fn end(&mut self) -> Duration {
         if let Some(start) = self.start_time {
             let duration = start.elapsed();
-            info!("Operation '{}' completed in {:?}", self.operation_name, duration);
+            info!(
+                "Operation '{}' completed in {:?}",
+                self.operation_name, duration
+            );
             self.start_time = None;
             duration
         } else {
-            warn!("Attempted to end timing for '{}' but it was never started", self.operation_name);
+            warn!(
+                "Attempted to end timing for '{}' but it was never started",
+                self.operation_name
+            );
             Duration::ZERO
         }
     }
@@ -73,12 +79,12 @@ mod tests {
     #[test]
     fn test_performance_monitor() {
         let mut monitor = PerformanceMonitor::new("test_operation");
-        
+
         // Test timing
         monitor.start();
         thread::sleep(Duration::from_millis(10));
         let duration = monitor.end();
-        
+
         assert!(duration.as_millis() >= 10);
         assert!(!monitor.is_timing());
     }
@@ -88,10 +94,10 @@ mod tests {
         let mut monitor = PerformanceMonitor::new("test_elapsed");
         monitor.start();
         thread::sleep(Duration::from_millis(5));
-        
+
         let elapsed = monitor.elapsed().unwrap();
         assert!(elapsed.as_millis() >= 5);
-        
+
         monitor.end();
     }
 

@@ -1,15 +1,15 @@
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tokio::time::{sleep, interval};
 use tokio::task::JoinHandle;
-use tracing::{info, warn, error, debug};
-use serde::{Deserialize, Serialize};
+use tokio::time::{interval, sleep};
+use tracing::{debug, error, info, warn};
 
 use crate::api::ApiClient;
-use crate::proxy::ProxyManager;
 use crate::core::PerformanceMonitor;
+use crate::proxy::ProxyManager;
 
 /// Event emitted when a product becomes available
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,7 +126,10 @@ impl MonitorTask {
         *is_running = true;
         drop(is_running);
 
-        info!("Starting monitor for product: {} ({})", self.config.product.name, self.config.product.id);
+        info!(
+            "Starting monitor for product: {} ({})",
+            self.config.product.name, self.config.product.id
+        );
 
         let mut interval_timer = interval(Duration::from_millis(self.config.interval_ms));
         let mut last_availability = None;
@@ -165,7 +168,10 @@ impl MonitorTask {
                     }
                 }
                 Err(e) => {
-                    warn!("Failed to check product availability for {}: {}", self.config.product.id, e);
+                    warn!(
+                        "Failed to check product availability for {}: {}",
+                        self.config.product.id, e
+                    );
                 }
             }
         }
@@ -191,13 +197,21 @@ impl MonitorTask {
         for attempt in 0..=self.config.max_retries {
             match self.single_check().await {
                 Ok(availability) => {
-                    debug!("Product {} check successful (attempt {}): available={}", 
-                        self.config.product.id, attempt + 1, availability);
+                    debug!(
+                        "Product {} check successful (attempt {}): available={}",
+                        self.config.product.id,
+                        attempt + 1,
+                        availability
+                    );
                     return Ok(availability);
                 }
                 Err(e) => {
-                    warn!("Product {} check failed (attempt {}): {}", 
-                        self.config.product.id, attempt + 1, e);
+                    warn!(
+                        "Product {} check failed (attempt {}): {}",
+                        self.config.product.id,
+                        attempt + 1,
+                        e
+                    );
                     last_error = Some(e);
                 }
             }
@@ -218,13 +232,16 @@ impl MonitorTask {
         let proxy = self.proxy_manager.get_next_proxy().await;
 
         // Make the request
-        let response = self.api_client.request(
-            reqwest::Method::GET,
-            &self.config.product.url,
-            None,
-            None,
-            proxy,
-        ).await?;
+        let response = self
+            .api_client
+            .request(
+                reqwest::Method::GET,
+                &self.config.product.url,
+                None,
+                None,
+                proxy,
+            )
+            .await?;
 
         // Check if the response indicates availability
         let is_available = self.parse_availability_from_response(&response)?;
@@ -233,7 +250,10 @@ impl MonitorTask {
     }
 
     /// Parse availability information from the HTTP response
-    fn parse_availability_from_response(&self, response: &crate::api::ResponseBody) -> Result<bool> {
+    fn parse_availability_from_response(
+        &self,
+        response: &crate::api::ResponseBody,
+    ) -> Result<bool> {
         // For now, we'll use a simple heuristic: 200 status means available
         // In a real implementation, you'd parse the HTML/JSON response to check:
         // - Stock status
@@ -252,7 +272,8 @@ impl MonitorTask {
                 "temporarily unavailable",
             ];
 
-            let is_out_of_stock = out_of_stock_indicators.iter()
+            let is_out_of_stock = out_of_stock_indicators
+                .iter()
                 .any(|indicator| body_lower.contains(indicator));
 
             Ok(!is_out_of_stock)
@@ -287,9 +308,12 @@ impl MonitorEngine {
     }
 
     /// Add a monitor task
-    pub fn add_monitor(&mut self, monitor: MonitorTask) -> mpsc::UnboundedReceiver<ProductAvailabilityEvent> {
+    pub fn add_monitor(
+        &mut self,
+        monitor: MonitorTask,
+    ) -> mpsc::UnboundedReceiver<ProductAvailabilityEvent> {
         let (sender, receiver) = mpsc::unbounded_channel();
-        
+
         // Create a new monitor task with the provided sender
         let task = MonitorTask {
             event_sender: sender,
@@ -297,9 +321,7 @@ impl MonitorEngine {
         };
 
         let _is_running = self.is_running.clone();
-        let task_handle = tokio::spawn(async move {
-            task.run().await
-        });
+        let task_handle = tokio::spawn(async move { task.run().await });
 
         self.tasks.push(task_handle);
         receiver
@@ -345,7 +367,7 @@ mod tests {
     async fn test_monitor_task_creation() {
         let api_client = Arc::new(ApiClient::new(None).unwrap());
         let proxy_manager = Arc::new(ProxyManager::new(vec![]));
-        
+
         let monitor = MonitorTask::new(
             "test-product".to_string(),
             "https://example.com/product".to_string(),
