@@ -1,4 +1,4 @@
-use anyhow::Result;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{info, error, warn};
@@ -10,7 +10,7 @@ use lazabot::storage::{Database, OrderRecord};
 
 /// Smoke test that validates the complete pipeline
 #[tokio::test]
-async fn test_complete_pipeline() -> Result<()> {
+async fn test_complete_pipeline() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
     tracing_subscriber::fmt::init();
     
@@ -141,7 +141,7 @@ async fn test_complete_pipeline() -> Result<()> {
 
 /// Test that validates the mock server is running
 #[tokio::test]
-async fn test_mock_server_connectivity() -> Result<()> {
+async fn test_mock_server_connectivity() -> Result<(), Box<dyn std::error::Error>> {
     let client = ApiClient::new(Some("Lazabot-Connectivity-Test/1.0".to_string()))?;
     
     // Test health endpoint

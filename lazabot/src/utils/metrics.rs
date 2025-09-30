@@ -15,11 +15,12 @@ use tracing::{error, info, warn};
 
 use parking_lot::Mutex;
 /// Shared metrics collector
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MetricsCollector {
     inner: Arc<MetricsInner>,
 }
 
+#[derive(Debug)]
 struct MetricsInner {
     // Counters
     total_requests: AtomicU64,

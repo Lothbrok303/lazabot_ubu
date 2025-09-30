@@ -456,7 +456,7 @@ impl ValidationReport {
 
 // Validation functions
 
-fn validate_master_key(value: &str) -> ValidationResult<()> {
+pub fn validate_master_key(value: &str) -> ValidationResult<()> {
     if value.len() != 64 {
         return Err(ValidationError::InvalidFormat(
             "Master key must be 64 hex characters (32 bytes)".to_string()
@@ -488,7 +488,7 @@ fn validate_api_key(value: &str) -> ValidationResult<()> {
     Ok(())
 }
 
-fn validate_email(value: &str) -> ValidationResult<()> {
+pub fn validate_email(value: &str) -> ValidationResult<()> {
     if value.is_empty() {
         return Err(ValidationError::InvalidFormat(
             "Email cannot be empty".to_string()
@@ -504,7 +504,7 @@ fn validate_email(value: &str) -> ValidationResult<()> {
     Ok(())
 }
 
-fn validate_password(value: &str) -> ValidationResult<()> {
+pub fn validate_password(value: &str) -> ValidationResult<()> {
     if value.is_empty() {
         return Err(ValidationError::InvalidFormat(
             "Password cannot be empty".to_string()
@@ -520,7 +520,7 @@ fn validate_password(value: &str) -> ValidationResult<()> {
     Ok(())
 }
 
-fn validate_log_level(value: &str) -> ValidationResult<()> {
+pub fn validate_log_level(value: &str) -> ValidationResult<()> {
     let valid_levels = ["trace", "debug", "info", "warn", "error"];
     if !valid_levels.contains(&value.to_lowercase().as_str()) {
         return Err(ValidationError::InvalidFormat(
@@ -565,7 +565,7 @@ fn validate_hostname(value: &str) -> ValidationResult<()> {
     Ok(())
 }
 
-fn validate_port(value: &str) -> ValidationResult<()> {
+pub fn validate_port(value: &str) -> ValidationResult<()> {
     match value.parse::<u16>() {
         Ok(port) => {
             if port == 0 {
@@ -581,7 +581,7 @@ fn validate_port(value: &str) -> ValidationResult<()> {
     }
 }
 
-fn validate_proxy_type(value: &str) -> ValidationResult<()> {
+pub fn validate_proxy_type(value: &str) -> ValidationResult<()> {
     let valid_types = ["http", "https", "socks4", "socks5"];
     if !valid_types.contains(&value.to_lowercase().as_str()) {
         return Err(ValidationError::InvalidFormat(

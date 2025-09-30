@@ -8,7 +8,7 @@
 
 use anyhow::Result;
 use lazabot::core::session::{Credentials, Session};
-use std::collections::HashMap;
+
 
 #[tokio::test]
 async fn test_session_manual_persistence() -> Result<()> {
