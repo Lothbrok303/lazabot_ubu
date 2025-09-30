@@ -1,0 +1,21 @@
+lazada acc:
+username:miclee1999@live.com.sg
+password:Amk84846031!
+
+iproyal proxy:
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-Qsye0dbb_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-By0pp71L_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-nc5KSQ1H_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-SMZXfYyc_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-ZU9T0nma_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-1uAgILgD_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-j7Uek7t6_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-U0lkPPKc_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-dTa6etKn_lifetime-168h
+geo.iproyal.com:12321:sakongsa:sakongsa303_country-sg_city-singapore_session-fFPmBCwO_lifetime-168h
+
+2captcha api:b916fbb3c0f129ad00643fdafba56d7f
+
+test product:
+https://www.lazada.sg/products/pdp-i301072965-s527094858.html?scm=1007.17760.398138.0&pvid=e1e36251-ce9e-4ed1-9053-6ad3b0c7c25c&search=flashsale&spm=a2o42.homepage.FlashSale.d_301072965
+https://www.lazada.sg/products/pdp-i3117267948-s21200737821.html?pvid=5fb0f00b-fcf4-4ce2-95d1-d21ff9888691&search=jfy&scm=1007.17519.386432.0&priceCompare=skuId%3A21200737821%3Bsource%3Atpp-recommend-plugin-32104%3Bsn%3A5fb0f00b-fcf4-4ce2-95d1-d21ff9888691%3BoriginPrice%3A275%3BdisplayPrice%3A275%3BsinglePromotionId%3A91471183456276%3BsingleToolCode%3ApromPrice%3BvoucherPricePlugin%3A0%3Btimestamp%3A1759169821393&spm=a2o42.homepage.just4u.d_3117267948

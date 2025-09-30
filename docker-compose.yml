@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # Redis for distributed task queue
+  redis:
+    image: redis:7-alpine
+    container_name: lazabot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - lazabot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Lazabot Agent 1
+  agent1:
+    build:
+      context: ./lazabot
+      dockerfile: Dockerfile
+    container_name: lazabot-agent1
+    environment:
+      - AGENT_ID=agent1
+      - REDIS_URL=redis://redis:6379
+      - METRICS_PORT=9091
+      - LAZABOT_LOG_LEVEL=info
+      - RUST_BACKTRACE=1
+    ports:
+      - "9091:9091"  # Metrics port
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - lazabot-network
+    restart: unless-stopped
+
+  # Lazabot Agent 2
+  agent2:
+    build:
+      context: ./lazabot
+      dockerfile: Dockerfile
+    container_name: lazabot-agent2
+    environment:
+      - AGENT_ID=agent2
+      - REDIS_URL=redis://redis:6379
+      - METRICS_PORT=9092
+      - LAZABOT_LOG_LEVEL=info
+      - RUST_BACKTRACE=1
+    ports:
+      - "9092:9092"  # Metrics port
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - lazabot-network
+    restart: unless-stopped
+
+  # Lazabot Agent 3
+  agent3:
+    build:
+      context: ./lazabot
+      dockerfile: Dockerfile
+    container_name: lazabot-agent3
+    environment:
+      - AGENT_ID=agent3
+      - REDIS_URL=redis://redis:6379
+      - METRICS_PORT=9093
+      - LAZABOT_LOG_LEVEL=info
+      - RUST_BACKTRACE=1
+    ports:
+      - "9093:9093"  # Metrics port
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - lazabot-network
+    restart: unless-stopped
+
+  # Prometheus for metrics aggregation (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: lazabot-prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - lazabot-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  prometheus-data:
+
+networks:
+  lazabot-network:
+    driver: bridge

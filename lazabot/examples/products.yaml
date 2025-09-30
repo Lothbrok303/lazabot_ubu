@@ -1,0 +1,37 @@
+products:
+  - id: "lazada-iphone-15"
+    name: "iPhone 15 Pro Max 256GB"
+    url: "https://www.lazada.com.my/products/iphone-15-pro-max-256gb-i123456789.html"
+    target_price: 4500.00
+    min_stock: 1
+    monitor_interval_ms: 5000
+    
+  - id: "lazada-samsung-s24"
+    name: "Samsung Galaxy S24 Ultra 512GB"
+    url: "https://www.lazada.com.my/products/samsung-galaxy-s24-ultra-512gb-i987654321.html"
+    target_price: 3800.00
+    min_stock: 2
+    monitor_interval_ms: 3000
+    
+  - id: "lazada-macbook-air"
+    name: "MacBook Air M3 13-inch"
+    url: "https://www.lazada.com.my/products/macbook-air-m3-13-inch-i555666777.html"
+    target_price: 5500.00
+    min_stock: 1
+    monitor_interval_ms: 10000
+
+# Test products (using httpbin for testing)
+test_products:
+  - id: "test-200"
+    name: "Test Product (200 OK)"
+    url: "https://httpbin.org/status/200"
+    target_price: 100.00
+    min_stock: 1
+    monitor_interval_ms: 2000
+    
+  - id: "test-404"
+    name: "Test Product (404 Not Found)"
+    url: "https://httpbin.org/status/404"
+    target_price: 100.00
+    min_stock: 1
+    monitor_interval_ms: 2000

@@ -1,0 +1,14 @@
+products:
+  - id: "test-product-1"
+    url: "https://httpbin.org/json"
+    name: "Test Product 1"
+    target_price: 99.99
+    min_stock: 1
+    check_interval: 30
+  
+  - id: "test-product-2"
+    url: "https://httpbin.org/get"
+    name: "Test Product 2"
+    target_price: 149.99
+    min_stock: 2
+    check_interval: 60

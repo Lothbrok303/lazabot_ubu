@@ -1,0 +1,25 @@
+{
+  "name": "lazabot-playwright-server",
+  "version": "1.0.0",
+  "description": "Playwright RPC server for Lazabot",
+  "main": "scripts/playwright_server.js",
+  "scripts": {
+    "start": "node scripts/playwright_server.js",
+    "install-browsers": "node scripts/browser_setup.js",
+    "test": "node scripts/test_server.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["playwright", "automation", "rpc", "lazada"],
+  "author": "Lazabot Team",
+  "license": "MIT"
+}

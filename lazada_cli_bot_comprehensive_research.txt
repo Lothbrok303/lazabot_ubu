@@ -1,0 +1,1096 @@
+# LAZADA.SG CLI BOT COMPREHENSIVE TECHNICAL RESEARCH
+# =====================================================
+# Research Date: January 2025
+# Target Platform: Lazada Singapore (lazada.sg)
+# Purpose: Complete technical analysis for CLI bot creation
+
+## EXECUTIVE SUMMARY
+===================
+
+This document provides comprehensive technical research for creating a CLI bot to automate the Lazada.sg checkout process. The research covers platform architecture, security measures, anti-bot detection systems, technical implementation strategies, and practical code examples.
+
+**Key Findings:**
+- Lazada.sg uses sophisticated anti-bot protection (Cloudflare, PerimeterX, custom detection)
+- Multiple detection layers: browser fingerprinting, behavioral analysis, IP monitoring
+- Checkout process involves complex API interactions and payment gateway integration
+- Success requires advanced evasion techniques and human-like behavior simulation
+
+## 1. PLATFORM OVERVIEW
+=====================
+
+### 1.1 Company Information
+- **Parent Company**: Alibaba Group (acquired 2016)
+- **Market Position**: Leading e-commerce platform in Singapore
+- **Business Model**: B2B2C marketplace with third-party sellers and LazMall
+- **User Base**: 160+ million active users across Southeast Asia
+- **Technology Stack**: React.js frontend, Node.js backend, microservices architecture
+
+### 1.2 Technical Architecture
+- **CDN**: Cloudflare (primary protection layer)
+- **Security**: PerimeterX, custom anti-bot systems
+- **Payment Gateway**: Multiple providers (Visa, Mastercard, DBS PayLah!, Lazada Wallet)
+- **Mobile App**: Native iOS/Android with different API endpoints
+- **Web Platform**: Responsive design with heavy JavaScript usage
+
+## 2. CHECKOUT PROCESS ANALYSIS
+=============================
+
+### 2.1 Standard Checkout Flow
+1. **Product Selection** → Add to cart
+2. **Shipping Address** → Required for delivery options
+3. **Delivery Method** → Standard/Express delivery selection
+4. **Payment Method** → Credit card/DBS PayLah!/Lazada Wallet
+5. **Voucher Application** → Optional discount codes
+6. **Order Confirmation** → Final review and submission
+
+### 2.2 Technical Implementation Details
+
+#### 2.2.1 Cart Management
+- **Add to Cart API**: POST /api/v1/cart/add
+- **Cart Retrieval**: GET /api/v1/cart/items
+- **Cart Update**: PUT /api/v1/cart/update
+- **Headers Required**: 
+  - Authorization: Bearer token
+  - X-Requested-With: XMLHttpRequest
+  - Content-Type: application/json
+
+#### 2.2.2 Checkout Process
+- **Checkout Initiation**: POST /api/v1/checkout/init
+- **Address Validation**: POST /api/v1/address/validate
+- **Payment Processing**: POST /api/v1/payment/process
+- **Order Confirmation**: POST /api/v1/order/confirm
+
+#### 2.2.3 Payment Gateway Integration
+- **Supported Methods**:
+  - Credit/Debit Cards (Visa, Mastercard, American Express)
+  - DBS PayLah! (Singapore-specific)
+  - Lazada Wallet
+  - Bank transfers
+- **Security**: PCI DSS compliant
+- **Tokenization**: Card details tokenized for security
+
+## 3. ANTI-BOT DETECTION SYSTEMS
+===============================
+
+### 3.1 Primary Protection Layers
+
+#### 3.1.1 Cloudflare Protection
+- **Challenge Types**: JavaScript challenges, CAPTCHA, browser checks
+- **Detection Methods**: 
+  - Browser fingerprinting
+  - TLS fingerprinting
+  - HTTP/2 fingerprinting
+  - Behavioral analysis
+- **Bypass Techniques**:
+  - Residential proxy rotation
+  - Browser fingerprint spoofing
+  - Human-like interaction patterns
+
+#### 3.1.2 PerimeterX Security
+- **Real-time Risk Scoring**: Based on user behavior patterns
+- **Device Fingerprinting**: Hardware and software characteristics
+- **Behavioral Analysis**: Mouse movements, typing patterns, navigation
+- **Machine Learning**: AI-powered bot detection
+
+#### 3.1.3 Custom Detection Systems
+- **Session Analysis**: Login patterns, cart behavior
+- **IP Reputation**: Monitoring for datacenter/VPN IPs
+- **Account Behavior**: Unusual purchase patterns
+- **Voucher Abuse Detection**: Preventing coupon farming
+
+### 3.2 Detection Triggers
+- **High-frequency requests** from same IP
+- **Automated browser signatures** (Selenium, Playwright, Puppeteer)
+- **Unusual mouse/keyboard patterns**
+- **Missing browser plugins/extensions**
+- **Inconsistent user-agent strings**
+- **Headless browser detection**
+- **WebDriver properties** (navigator.webdriver)
+
+## 4. TECHNICAL IMPLEMENTATION STRATEGIES
+=========================================
+
+### 4.1 Browser Automation Framework Selection
+
+#### 4.1.1 Selenium WebDriver
+**Pros:**
+- Mature ecosystem
+- Multiple language support
+- Extensive documentation
+- Good for complex interactions
+
+**Cons:**
+- Easily detected
+- Requires additional stealth modifications
+- Slower execution
+
+**Implementation Example:**
+```python
+from selenium import webdriver
+from selenium_stealth import stealth
+from selenium.webdriver.chrome.options import Options
+
+def create_stealth_driver():
+    options = Options()
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+    
+    driver = webdriver.Chrome(options=options)
+    
+    stealth(driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+            )
+    
+    return driver
+```
+
+#### 4.1.2 Playwright
+**Pros:**
+- Modern architecture
+- Better stealth capabilities
+- Faster execution
+- Built-in waiting mechanisms
+
+**Cons:**
+- Newer ecosystem
+- Limited stealth plugins
+- Requires custom modifications
+
+**Implementation Example:**
+```python
+from playwright.sync_api import sync_playwright
+import random
+
+def create_stealth_playwright():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=False,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor'
+            ]
+        )
+        
+        context = browser.new_context(
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            viewport={'width': 1920, 'height': 1080},
+            locale='en-US',
+            timezone_id='America/New_York'
+        )
+        
+        page = context.new_page()
+        
+        # Override webdriver detection
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined,
+            });
+        """)
+        
+        return browser, context, page
+```
+
+#### 4.1.3 Puppeteer (Node.js)
+**Pros:**
+- Excellent stealth capabilities
+- puppeteer-extra-plugin-stealth available
+- Good for JavaScript-heavy sites
+- Easy proxy integration
+
+**Cons:**
+- Node.js only
+- Memory intensive
+- Requires additional setup
+
+**Implementation Example:**
+```javascript
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
+
+async function createStealthBrowser() {
+    const browser = await puppeteer.launch({
+        headless: false,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ]
+    });
+    
+    const page = await browser.newPage();
+    
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+    await page.setViewport({ width: 1920, height: 1080 });
+    
+    return { browser, page };
+}
+```
+
+### 4.2 Proxy Management
+
+#### 4.2.1 Residential Proxy Requirements
+- **Provider Selection**: BrightData, Oxylabs, Smartproxy
+- **Rotation Strategy**: Per-session or per-request
+- **Geographic Distribution**: Singapore-based IPs preferred
+- **Session Persistence**: Maintain same IP for checkout process
+
+#### 4.2.2 Proxy Implementation
+```python
+import random
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+
+class ProxyManager:
+    def __init__(self, proxy_list):
+        self.proxy_list = proxy_list
+        self.current_proxy = None
+    
+    def get_random_proxy(self):
+        self.current_proxy = random.choice(self.proxy_list)
+        return self.current_proxy
+    
+    def setup_proxy_for_selenium(self, driver_options):
+        proxy = self.get_random_proxy()
+        proxy_obj = Proxy()
+        proxy_obj.proxy_type = ProxyType.MANUAL
+        proxy_obj.http_proxy = proxy
+        proxy_obj.ssl_proxy = proxy
+        
+        driver_options.proxy = proxy_obj
+        return driver_options
+```
+
+### 4.3 Human-like Behavior Simulation
+
+#### 4.3.1 Mouse Movement Patterns
+```python
+import random
+import time
+from selenium.webdriver.common.action_chains import ActionChains
+
+class HumanBehavior:
+    @staticmethod
+    def random_mouse_movement(driver, element):
+        actions = ActionChains(driver)
+        
+        # Random mouse movement before clicking
+        for _ in range(random.randint(1, 3)):
+            x_offset = random.randint(-50, 50)
+            y_offset = random.randint(-50, 50)
+            actions.move_by_offset(x_offset, y_offset)
+            time.sleep(random.uniform(0.1, 0.3))
+        
+        actions.move_to_element(element)
+        actions.click()
+        actions.perform()
+    
+    @staticmethod
+    def human_typing(driver, element, text):
+        element.clear()
+        for char in text:
+            element.send_keys(char)
+            time.sleep(random.uniform(0.05, 0.15))
+```
+
+#### 4.3.2 Timing Patterns
+```python
+import random
+import time
+
+class TimingManager:
+    @staticmethod
+    def random_delay(min_seconds=1, max_seconds=3):
+        delay = random.uniform(min_seconds, max_seconds)
+        time.sleep(delay)
+    
+    @staticmethod
+    def page_load_delay():
+        # Wait for page to load with random additional delay
+        time.sleep(random.uniform(2, 5))
+    
+    @staticmethod
+    def interaction_delay():
+        # Delay between interactions
+        time.sleep(random.uniform(0.5, 2))
+```
+
+### 4.4 Browser Fingerprint Spoofing
+
+#### 4.4.1 User-Agent Rotation
+```python
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+]
+
+def get_random_user_agent():
+    return random.choice(USER_AGENTS)
+```
+
+#### 4.4.2 WebGL and Canvas Fingerprint Spoofing
+```python
+def inject_fingerprint_scripts(page):
+    fingerprint_script = """
+    // Override WebGL fingerprinting
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+        if (parameter === 37445) {
+            return 'Intel Inc.';
+        }
+        if (parameter === 37446) {
+            return 'Intel Iris OpenGL Engine';
+        }
+        return getParameter(parameter);
+    };
+    
+    // Override canvas fingerprinting
+    const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function() {
+        const context = this.getContext('2d');
+        if (context) {
+            context.fillText = function() { return this; };
+        }
+        return originalToDataURL.apply(this, arguments);
+    };
+    """
+    page.add_init_script(fingerprint_script)
+```
+
+## 5. LAZADA-SPECIFIC IMPLEMENTATION
+===================================
+
+### 5.1 Login Process
+```python
+class LazadaBot:
+    def __init__(self, driver):
+        self.driver = driver
+        self.base_url = "https://www.lazada.sg"
+    
+    def login(self, email, password):
+        self.driver.get(f"{self.base_url}/login")
+        
+        # Wait for login form
+        email_field = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.NAME, "email"))
+        )
+        
+        # Human-like typing
+        HumanBehavior.human_typing(self.driver, email_field, email)
+        TimingManager.interaction_delay()
+        
+        password_field = self.driver.find_element(By.NAME, "password")
+        HumanBehavior.human_typing(self.driver, password_field, password)
+        TimingManager.interaction_delay()
+        
+        # Click login button
+        login_button = self.driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+        HumanBehavior.random_mouse_movement(self.driver, login_button)
+        
+        # Wait for redirect
+        TimingManager.page_load_delay()
+```
+
+### 5.2 Product Search and Selection
+```python
+def search_product(self, product_name):
+    search_box = WebDriverWait(self.driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search']"))
+    )
+    
+    HumanBehavior.human_typing(self.driver, search_box, product_name)
+    search_box.send_keys(Keys.RETURN)
+    
+    TimingManager.page_load_delay()
+    
+    # Select first product
+    product_link = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, ".product-item a"))
+    )
+    product_link.click()
+    
+    TimingManager.page_load_delay()
+
+def add_to_cart(self, quantity=1):
+    # Select quantity if needed
+    if quantity > 1:
+        quantity_selector = self.driver.find_element(By.CSS_SELECTOR, "select[name='quantity']")
+        quantity_selector.send_keys(str(quantity))
+    
+    # Click add to cart
+    add_to_cart_button = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='add-to-cart']"))
+    )
+    HumanBehavior.random_mouse_movement(self.driver, add_to_cart_button)
+    
+    TimingManager.interaction_delay()
+```
+
+### 5.3 Checkout Process
+```python
+def proceed_to_checkout(self):
+    # Click cart icon
+    cart_icon = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "[data-testid='cart-icon']"))
+    )
+    cart_icon.click()
+    
+    TimingManager.page_load_delay()
+    
+    # Click checkout button
+    checkout_button = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='checkout']"))
+    )
+    HumanBehavior.random_mouse_movement(self.driver, checkout_button)
+    
+    TimingManager.page_load_delay()
+
+def fill_shipping_address(self, address_data):
+    # Fill address form
+    address_fields = {
+        'name': address_data['name'],
+        'phone': address_data['phone'],
+        'address': address_data['address'],
+        'postal_code': address_data['postal_code']
+    }
+    
+    for field_name, value in address_fields.items():
+        field = self.driver.find_element(By.NAME, field_name)
+        HumanBehavior.human_typing(self.driver, field, value)
+        TimingManager.interaction_delay()
+    
+    # Select delivery method
+    delivery_option = self.driver.find_element(By.CSS_SELECTOR, "input[value='standard']")
+    delivery_option.click()
+    
+    TimingManager.interaction_delay()
+
+def apply_voucher(self, voucher_code):
+    try:
+        voucher_field = self.driver.find_element(By.CSS_SELECTOR, "input[placeholder*='voucher']")
+        HumanBehavior.human_typing(self.driver, voucher_field, voucher_code)
+        
+        apply_button = self.driver.find_element(By.CSS_SELECTOR, "button[data-testid='apply-voucher']")
+        HumanBehavior.random_mouse_movement(self.driver, apply_button)
+        
+        TimingManager.interaction_delay()
+        
+        # Check if voucher was applied successfully
+        success_message = self.driver.find_element(By.CSS_SELECTOR, ".voucher-success")
+        return success_message.is_displayed()
+    except:
+        return False
+
+def select_payment_method(self, payment_type):
+    payment_methods = {
+        'credit_card': "input[value='credit_card']",
+        'dbs_paylah': "input[value='dbs_paylah']",
+        'lazada_wallet': "input[value='lazada_wallet']"
+    }
+    
+    payment_radio = self.driver.find_element(By.CSS_SELECTOR, payment_methods[payment_type])
+    payment_radio.click()
+    
+    TimingManager.interaction_delay()
+
+def complete_payment(self, payment_data):
+    if payment_data['method'] == 'credit_card':
+        # Fill credit card details
+        card_number_field = self.driver.find_element(By.NAME, 'card_number')
+        HumanBehavior.human_typing(self.driver, card_number_field, payment_data['card_number'])
+        
+        expiry_field = self.driver.find_element(By.NAME, 'expiry')
+        HumanBehavior.human_typing(self.driver, expiry_field, payment_data['expiry'])
+        
+        cvv_field = self.driver.find_element(By.NAME, 'cvv')
+        HumanBehavior.human_typing(self.driver, cvv_field, payment_data['cvv'])
+    
+    # Click place order button
+    place_order_button = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='place-order']"))
+    )
+    HumanBehavior.random_mouse_movement(self.driver, place_order_button)
+    
+    TimingManager.page_load_delay()
+```
+
+## 6. ERROR HANDLING AND RECOVERY
+================================
+
+### 6.1 Common Error Scenarios
+- **CAPTCHA Challenges**: Implement solving service integration
+- **Rate Limiting**: Implement exponential backoff
+- **Session Timeout**: Automatic re-login
+- **Payment Failures**: Retry with different payment method
+- **Voucher Rejection**: Fallback to no voucher
+
+### 6.2 Error Handling Implementation
+```python
+import logging
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
+class ErrorHandler:
+    def __init__(self, driver):
+        self.driver = driver
+        self.logger = logging.getLogger(__name__)
+    
+    def handle_captcha(self):
+        try:
+            captcha_element = self.driver.find_element(By.CSS_SELECTOR, ".captcha-container")
+            if captcha_element.is_displayed():
+                self.logger.warning("CAPTCHA detected, manual intervention required")
+                input("Please solve CAPTCHA and press Enter to continue...")
+                return True
+        except NoSuchElementException:
+            return False
+    
+    def handle_rate_limit(self):
+        try:
+            rate_limit_message = self.driver.find_element(By.CSS_SELECTOR, ".rate-limit-message")
+            if rate_limit_message.is_displayed():
+                self.logger.warning("Rate limit detected, waiting...")
+                time.sleep(300)  # Wait 5 minutes
+                return True
+        except NoSuchElementException:
+            return False
+    
+    def handle_session_timeout(self):
+        try:
+            login_redirect = self.driver.find_element(By.CSS_SELECTOR, ".login-redirect")
+            if login_redirect.is_displayed():
+                self.logger.warning("Session timeout, re-login required")
+                return True
+        except NoSuchElementException:
+            return False
+```
+
+## 7. TESTING AND VALIDATION
+===========================
+
+### 7.1 Detection Testing
+```python
+def test_bot_detection():
+    """Test if bot is detected by various detection services"""
+    test_urls = [
+        "https://bot.sannysoft.com/",
+        "https://bot.incolumitas.com/",
+        "https://pixelscan.net/"
+    ]
+    
+    for url in test_urls:
+        driver = create_stealth_driver()
+        driver.get(url)
+        
+        # Take screenshot for analysis
+        driver.save_screenshot(f"detection_test_{url.split('/')[-2]}.png")
+        
+        # Check for detection indicators
+        detection_indicators = driver.find_elements(By.CSS_SELECTOR, ".detected")
+        if detection_indicators:
+            print(f"Bot detected on {url}")
+        else:
+            print(f"Bot not detected on {url}")
+        
+        driver.quit()
+```
+
+### 7.2 Performance Testing
+```python
+import time
+from datetime import datetime
+
+class PerformanceMonitor:
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.actions = []
+    
+    def start_timer(self):
+        self.start_time = datetime.now()
+    
+    def log_action(self, action_name):
+        current_time = datetime.now()
+        self.actions.append({
+            'action': action_name,
+            'timestamp': current_time,
+            'duration': (current_time - self.start_time).total_seconds()
+        })
+    
+    def get_performance_report(self):
+        total_duration = (self.end_time - self.start_time).total_seconds()
+        return {
+            'total_duration': total_duration,
+            'actions': self.actions,
+            'average_action_time': sum([a['duration'] for a in self.actions]) / len(self.actions)
+        }
+```
+
+## 8. SECURITY CONSIDERATIONS
+============================
+
+### 8.1 Data Protection
+- **Encryption**: Store sensitive data encrypted
+- **Secure Storage**: Use secure credential storage
+- **Session Management**: Implement secure session handling
+- **Logging**: Avoid logging sensitive information
+
+### 8.2 Legal Compliance
+- **Terms of Service**: Review Lazada's ToS
+- **Rate Limiting**: Respect server resources
+- **Data Usage**: Comply with data protection laws
+- **Account Safety**: Avoid account suspension
+
+### 8.3 Implementation Security
+```python
+import os
+from cryptography.fernet import Fernet
+
+class SecureStorage:
+    def __init__(self, key_file='encryption.key'):
+        self.key_file = key_file
+        self.key = self._get_or_create_key()
+        self.cipher = Fernet(self.key)
+    
+    def _get_or_create_key(self):
+        if os.path.exists(self.key_file):
+            with open(self.key_file, 'rb') as f:
+                return f.read()
+        else:
+            key = Fernet.generate_key()
+            with open(self.key_file, 'wb') as f:
+                f.write(key)
+            return key
+    
+    def encrypt_data(self, data):
+        return self.cipher.encrypt(data.encode())
+    
+    def decrypt_data(self, encrypted_data):
+        return self.cipher.decrypt(encrypted_data).decode()
+```
+
+## 9. DEPLOYMENT AND MAINTENANCE
+================================
+
+### 9.1 CLI Interface Design
+```python
+import argparse
+import json
+from pathlib import Path
+
+class LazadaCLIBot:
+    def __init__(self):
+        self.parser = argparse.ArgumentParser(description='Lazada Checkout Bot')
+        self.setup_arguments()
+    
+    def setup_arguments(self):
+        self.parser.add_argument('--product', required=True, help='Product to search for')
+        self.parser.add_argument('--quantity', type=int, default=1, help='Quantity to purchase')
+        self.parser.add_argument('--voucher', help='Voucher code to apply')
+        self.parser.add_argument('--payment-method', choices=['credit_card', 'dbs_paylah', 'lazada_wallet'], required=True)
+        self.parser.add_argument('--config', help='Path to configuration file')
+        self.parser.add_argument('--headless', action='store_true', help='Run in headless mode')
+        self.parser.add_argument('--proxy', help='Proxy server address')
+    
+    def run(self):
+        args = self.parser.parse_args()
+        
+        # Load configuration
+        config = self.load_config(args.config)
+        
+        # Initialize bot
+        bot = LazadaBot(config)
+        
+        try:
+            # Execute checkout process
+            result = bot.execute_checkout(
+                product=args.product,
+                quantity=args.quantity,
+                voucher=args.voucher,
+                payment_method=args.payment_method
+            )
+            
+            if result['success']:
+                print(f"Order placed successfully! Order ID: {result['order_id']}")
+            else:
+                print(f"Checkout failed: {result['error']}")
+                
+        except Exception as e:
+            print(f"Error: {str(e)}")
+    
+    def load_config(self, config_path):
+        if config_path and Path(config_path).exists():
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        else:
+            return self.get_default_config()
+    
+    def get_default_config(self):
+        return {
+            'credentials': {
+                'email': os.getenv('LAZADA_EMAIL'),
+                'password': os.getenv('LAZADA_PASSWORD')
+            },
+            'payment': {
+                'credit_card': {
+                    'number': os.getenv('CARD_NUMBER'),
+                    'expiry': os.getenv('CARD_EXPIRY'),
+                    'cvv': os.getenv('CARD_CVV')
+                }
+            },
+            'shipping': {
+                'name': os.getenv('SHIPPING_NAME'),
+                'phone': os.getenv('SHIPPING_PHONE'),
+                'address': os.getenv('SHIPPING_ADDRESS'),
+                'postal_code': os.getenv('SHIPPING_POSTAL_CODE')
+            }
+        }
+
+if __name__ == '__main__':
+    bot = LazadaCLIBot()
+    bot.run()
+```
+
+### 9.2 Configuration Management
+```yaml
+# config.yaml
+credentials:
+  email: "your_email@example.com"
+  password: "your_password"
+
+payment:
+  credit_card:
+    number: "1234567890123456"
+    expiry: "12/25"
+    cvv: "123"
+  dbs_paylah:
+    phone: "+65xxxxxxxx"
+
+shipping:
+  name: "Your Name"
+  phone: "+65xxxxxxxx"
+  address: "Your Address"
+  postal_code: "123456"
+
+proxy:
+  enabled: true
+  server: "proxy.example.com:8080"
+  username: "proxy_user"
+  password: "proxy_pass"
+
+stealth:
+  user_agent_rotation: true
+  human_behavior_simulation: true
+  fingerprint_spoofing: true
+```
+
+### 9.3 Monitoring and Logging
+```python
+import logging
+from datetime import datetime
+import json
+
+class BotLogger:
+    def __init__(self, log_file='lazada_bot.log'):
+        self.logger = logging.getLogger('LazadaBot')
+        self.logger.setLevel(logging.INFO)
+        
+        # File handler
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        
+        # Formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+    
+    def log_action(self, action, details=None):
+        log_data = {
+            'timestamp': datetime.now().isoformat(),
+            'action': action,
+            'details': details
+        }
+        self.logger.info(json.dumps(log_data))
+    
+    def log_error(self, error, context=None):
+        error_data = {
+            'timestamp': datetime.now().isoformat(),
+            'error': str(error),
+            'context': context
+        }
+        self.logger.error(json.dumps(error_data))
+```
+
+## 10. ADVANCED TECHNIQUES
+=========================
+
+### 10.1 Multi-Account Management
+```python
+class AccountManager:
+    def __init__(self, accounts_file='accounts.json'):
+        self.accounts_file = accounts_file
+        self.accounts = self.load_accounts()
+        self.current_account = None
+    
+    def load_accounts(self):
+        with open(self.accounts_file, 'r') as f:
+            return json.load(f)
+    
+    def get_next_account(self):
+        # Rotate through accounts
+        if not self.current_account:
+            self.current_account = 0
+        else:
+            self.current_account = (self.current_account + 1) % len(self.accounts)
+        
+        return self.accounts[self.current_account]
+    
+    def mark_account_used(self, account_id):
+        # Mark account as used to avoid immediate reuse
+        for account in self.accounts:
+            if account['id'] == account_id:
+                account['last_used'] = datetime.now().isoformat()
+                break
+        
+        self.save_accounts()
+    
+    def save_accounts(self):
+        with open(self.accounts_file, 'w') as f:
+            json.dump(self.accounts, f, indent=2)
+```
+
+### 10.2 CAPTCHA Solving Integration
+```python
+import requests
+from PIL import Image
+import io
+
+class CaptchaSolver:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.service_url = "https://api.2captcha.com"
+    
+    def solve_captcha(self, driver, captcha_selector):
+        try:
+            # Find captcha element
+            captcha_element = driver.find_element(By.CSS_SELECTOR, captcha_selector)
+            
+            # Take screenshot of captcha
+            captcha_screenshot = captcha_element.screenshot_as_png()
+            
+            # Send to solving service
+            solution = self._send_to_solver(captcha_screenshot)
+            
+            # Input solution
+            solution_field = driver.find_element(By.CSS_SELECTOR, "input[name='captcha']")
+            solution_field.send_keys(solution)
+            
+            return True
+        except Exception as e:
+            print(f"CAPTCHA solving failed: {e}")
+            return False
+    
+    def _send_to_solver(self, image_data):
+        # Implementation for 2captcha or similar service
+        files = {'file': io.BytesIO(image_data)}
+        data = {'key': self.api_key, 'method': 'post'}
+        
+        response = requests.post(f"{self.service_url}/in.php", files=files, data=data)
+        captcha_id = response.text.split('|')[1]
+        
+        # Poll for result
+        while True:
+            result_response = requests.get(f"{self.service_url}/res.php?key={self.api_key}&action=get&id={captcha_id}")
+            if result_response.text.startswith('OK'):
+                return result_response.text.split('|')[1]
+            time.sleep(5)
+```
+
+### 10.3 Database Integration
+```python
+import sqlite3
+from datetime import datetime
+
+class OrderDatabase:
+    def __init__(self, db_file='orders.db'):
+        self.db_file = db_file
+        self.init_database()
+    
+    def init_database(self):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id TEXT UNIQUE,
+                product_name TEXT,
+                quantity INTEGER,
+                price REAL,
+                voucher_used TEXT,
+                payment_method TEXT,
+                status TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    
+    def save_order(self, order_data):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO orders 
+            (order_id, product_name, quantity, price, voucher_used, payment_method, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            order_data['order_id'],
+            order_data['product_name'],
+            order_data['quantity'],
+            order_data['price'],
+            order_data['voucher_used'],
+            order_data['payment_method'],
+            order_data['status'],
+            datetime.now(),
+            datetime.now()
+        ))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_orders(self, limit=100):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM orders ORDER BY created_at DESC LIMIT ?', (limit,))
+        orders = cursor.fetchall()
+        
+        conn.close()
+        return orders
+```
+
+## 11. TROUBLESHOOTING GUIDE
+===========================
+
+### 11.1 Common Issues and Solutions
+
+#### Issue: Bot Detection
+**Symptoms**: CAPTCHA challenges, account suspension, "suspicious activity" messages
+**Solutions**:
+- Implement better stealth techniques
+- Use residential proxies
+- Add more human-like behavior
+- Rotate user agents and fingerprints
+
+#### Issue: Payment Failures
+**Symptoms**: Payment processing errors, transaction declined
+**Solutions**:
+- Verify payment details
+- Try different payment methods
+- Check account balance
+- Contact payment provider
+
+#### Issue: Voucher Rejection
+**Symptoms**: Voucher codes not applying, "invalid voucher" messages
+**Solutions**:
+- Verify voucher validity
+- Check voucher terms and conditions
+- Try different voucher codes
+- Remove vouchers if causing issues
+
+#### Issue: Session Timeouts
+**Symptoms**: Automatic logout, login required messages
+**Solutions**:
+- Implement session management
+- Add automatic re-login
+- Increase session timeout handling
+- Monitor session status
+
+### 11.2 Debug Mode
+```python
+class DebugMode:
+    def __init__(self, enabled=False):
+        self.enabled = enabled
+        self.screenshots = []
+        self.logs = []
+    
+    def take_screenshot(self, driver, description):
+        if self.enabled:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"debug_{timestamp}_{description}.png"
+            driver.save_screenshot(filename)
+            self.screenshots.append(filename)
+    
+    def log_debug(self, message):
+        if self.enabled:
+            timestamp = datetime.now().isoformat()
+            self.logs.append(f"{timestamp}: {message}")
+            print(f"DEBUG: {message}")
+    
+    def save_debug_info(self):
+        if self.enabled:
+            with open('debug_info.txt', 'w') as f:
+                f.write("Screenshots:\n")
+                for screenshot in self.screenshots:
+                    f.write(f"- {screenshot}\n")
+                f.write("\nLogs:\n")
+                for log in self.logs:
+                    f.write(f"{log}\n")
+```
+
+## 12. CONCLUSION AND RECOMMENDATIONS
+====================================
+
+### 12.1 Key Success Factors
+1. **Advanced Stealth Techniques**: Implement comprehensive bot detection evasion
+2. **Human-like Behavior**: Simulate realistic user interactions
+3. **Proxy Management**: Use high-quality residential proxies
+4. **Error Handling**: Robust error recovery mechanisms
+5. **Monitoring**: Comprehensive logging and monitoring
+
+### 12.2 Implementation Priority
+1. **Phase 1**: Basic bot setup with stealth modifications
+2. **Phase 2**: Human behavior simulation and proxy integration
+3. **Phase 3**: Advanced features (CAPTCHA solving, multi-account)
+4. **Phase 4**: Production deployment and monitoring
+
+### 12.3 Risk Mitigation
+- **Legal Compliance**: Ensure compliance with terms of service
+- **Account Safety**: Implement rate limiting and account rotation
+- **Data Security**: Encrypt sensitive information
+- **Monitoring**: Track bot performance and detection rates
+
+### 12.4 Future Enhancements
+- **Machine Learning**: AI-powered behavior simulation
+- **Cloud Deployment**: Scalable cloud-based execution
+- **API Integration**: Direct API access when available
+- **Mobile Support**: Mobile app automation capabilities
+
+---
+
+**DISCLAIMER**: This research is for educational purposes only. Users must comply with Lazada's Terms of Service and applicable laws. The authors are not responsible for any misuse of this information.
+
+**Last Updated**: January 2025
+**Version**: 1.0
+**Status**: Complete

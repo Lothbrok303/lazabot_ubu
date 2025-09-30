@@ -1,0 +1,8 @@
+    fn default_encryption_key() -> [u8; 32] {
+        // In production, this should be derived from user-specific data
+        // For now, using a placeholder key
+        let mut key = [0u8; 32];
+        key[..16].copy_from_slice(b"lazabot-session-");
+        key[16..].copy_from_slice(b"encryption-key--");
+        key
+    }

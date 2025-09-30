@@ -1,0 +1,8 @@
+user_agent = "Lazabot-Integration-Test/1.0"
+timeout_seconds = 30
+retry_attempts = 3
+proxy_file = "test_proxies.txt"
+products_file = "test_products.yaml"
+log_level = "info"
+check_interval_seconds = 60
+max_concurrent_monitors = 10

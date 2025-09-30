@@ -1,0 +1,23 @@
+# Prometheus configuration for Lazabot metrics
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Lazabot agents
+  - job_name: 'lazabot-agents'
+    static_configs:
+      - targets:
+        - 'agent1:9091'
+        - 'agent2:9092'
+        - 'agent3:9093'
+        labels:
+          service: 'lazabot'
+    
+  # Redis exporter (optional, if you add it)
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+        - 'redis:6379'
+        labels:
+          service: 'redis'

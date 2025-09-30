@@ -1,0 +1,65 @@
+# Cursor Auto-Push Rule for Test Success
+
+## Rule Configuration
+```json
+{
+  "name": "Auto-push on successful tests",
+  "description": "Automatically push code to GitHub when all tests pass successfully",
+  "triggers": [
+    {
+      "type": "test_completion",
+      "condition": "all_tests_passed",
+      "action": "git_push"
+    }
+  ],
+  "git_push_config": {
+    "auto_stage": true,
+    "commit_message_template": "Auto-commit: Tests passed successfully - {timestamp}",
+    "push_branch": "main",
+    "include_output": true
+  }
+}
+```
+
+## Implementation Steps
+
+1. **Add to Cursor Settings**:
+   - Open Cursor Settings (Ctrl/Cmd + ,)
+   - Go to "Rules" or "Automation" section
+   - Add this rule configuration
+
+2. **Required Git Setup**:
+   - Ensure SSH key is configured for GitHub
+   - Repository must have remote origin set
+   - Working directory must be a git repository
+
+3. **Test Detection**:
+   - Rule triggers when test runner completes
+   - Checks for exit code 0 (success)
+   - Verifies no test failures reported
+
+4. **Auto-Push Process**:
+   ```
+   git add .
+   git commit -m "Auto-commit: Tests passed successfully - {current_timestamp}"
+   git push origin main
+   ```
+
+5. **Output Logging**:
+   - Push output saved to: `git_push_logs.txt`
+   - Includes timestamp, commit hash, and push status
+   - Appends to log file for history tracking
+
+## Customization Options
+
+- **Commit Message**: Modify `commit_message_template`
+- **Branch**: Change `push_branch` if using different branch
+- **Staging**: Set `auto_stage` to false to manually stage files
+- **Log Location**: Change output file path as needed
+
+## Safety Features
+
+- Only pushes on successful test completion
+- Preserves existing commit history
+- Logs all push operations for audit trail
+- Requires manual intervention for failed tests
