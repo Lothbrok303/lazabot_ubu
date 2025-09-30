@@ -1,0 +1,53 @@
+[Unit]
+Description=Lazabot - Lazada Automation Bot
+Documentation=https://github.com/your-org/lazabot
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=lazabot
+Group=lazabot
+WorkingDirectory=/opt/lazabot
+ExecStart=/usr/local/bin/lazabot monitor --verbose
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Environment
+EnvironmentFile=/etc/lazabot/env
+Environment=RUST_LOG=info
+Environment=RUST_ENV=production
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lazabot/data /opt/lazabot/logs /var/log/lazabot
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=2G
+CPUQuota=200%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lazabot
+
+# Kill settings
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
